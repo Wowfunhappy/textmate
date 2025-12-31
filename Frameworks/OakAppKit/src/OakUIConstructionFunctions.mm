@@ -4,7 +4,7 @@
 
 NSFont* OakStatusBarFont ()
 {
-	return [NSFont messageFontOfSize:[NSUserDefaults.standardUserDefaults integerForKey:@"statusBarFontSize"] ?: 12];
+	return [NSFont messageFontOfSize:[NSUserDefaults.standardUserDefaults integerForKey:@"statusBarFontSize"] ?: 11];
 }
 
 NSFont* OakControlFont ()
@@ -147,6 +147,18 @@ OakRolloverButton* OakCreateCloseButton (NSString* accessibilityLabel)
 		[self setWantsLayer:YES]; // required by NSVisualEffectBlendingModeWithinWindow
 	}
 	return self;
+}
+
+- (void)setupHeaderBackground
+{
+	self.activeBackgroundGradient   = [[NSGradient alloc] initWithStartingColor:[NSColor colorWithCalibratedWhite:0.915 alpha:1] endingColor:[NSColor colorWithCalibratedWhite:0.760 alpha:1]];
+	self.inactiveBackgroundGradient = [[NSGradient alloc] initWithStartingColor:[NSColor colorWithCalibratedWhite:0.915 alpha:1] endingColor:[NSColor colorWithCalibratedWhite:0.915 alpha:1]];
+}
+
+- (void)setupStatusBarBackground
+{
+	self.activeBackgroundGradient   = [[NSGradient alloc] initWithColorsAndLocations:[NSColor colorWithCalibratedWhite:1 alpha:0.68], 0.0, [NSColor colorWithCalibratedWhite:1 alpha:0.5], 0.0416, [NSColor colorWithCalibratedWhite:1 alpha:0], 1.0, nil];
+	self.inactiveBackgroundGradient = [[NSGradient alloc] initWithColorsAndLocations:[NSColor colorWithCalibratedWhite:1 alpha:0.68], 0.0, [NSColor colorWithCalibratedWhite:1 alpha:0.5], 0.0416, [NSColor colorWithCalibratedWhite:1 alpha:0], 1.0, nil];
 }
 
 - (void)viewWillMoveToWindow:(NSWindow*)newWindow
@@ -410,4 +422,20 @@ void OakAddAutoLayoutViewsToSuperview (NSArray* views, NSView* superview)
 		[view setTranslatesAutoresizingMaskIntoConstraints:NO];
 		[superview addSubview:view];
 	}
+}
+
+BOOL OakSetAccessibilityLabel (NSObject* element, NSObject* label)
+{
+	if(!(element = NSAccessibilityUnignoredDescendant(element)))
+		return NO;
+
+	NSString* attribute = NSAccessibilityDescriptionAttribute;
+	if(![label isKindOfClass:NSString.class])
+	{
+		attribute = NSAccessibilityTitleUIElementAttribute;
+		if(!(label = NSAccessibilityUnignoredDescendant(label)))
+			return NO;
+	}
+
+	return [element accessibilitySetOverrideValue:label forAttribute:attribute];
 }

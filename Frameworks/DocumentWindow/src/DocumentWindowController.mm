@@ -185,10 +185,20 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 		self.layoutView.documentView = self.documentView;
 
 		NSUInteger windowStyle = (NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskResizable|NSWindowStyleMaskMiniaturizable);
+		if(!@available(macos 10.10, *))
+			windowStyle |= NSWindowStyleMaskTexturedBackground;
 		self.window = [[NSWindow alloc] initWithContentRect:[NSWindow contentRectForFrameRect:[self frameRectForNewWindow] styleMask:windowStyle] styleMask:windowStyle backing:NSBackingStoreBuffered defer:NO];
 		self.window.collectionBehavior = NSWindowCollectionBehaviorFullScreenPrimary;
 		self.window.delegate           = self;
 		self.window.releasedWhenClosed = NO;
+
+		if(!@available(macos 10.10, *))
+		{
+			[self.window setContentBorderThickness:0 forEdge:NSMaxYEdge]; // top border
+			[self.window setContentBorderThickness:0 forEdge:NSMinYEdge]; // bottom border
+			[self.window setAutorecalculatesContentBorderThickness:NO forEdge:NSMaxYEdge];
+			[self.window setAutorecalculatesContentBorderThickness:NO forEdge:NSMinYEdge];
+		}
 
 		if(@available(macos 10.10, *))
 		{
@@ -1503,7 +1513,7 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 	{
 		[self.tabBarView reloadData];
 		if(!self.tabBarView.selectedTabItem)
-			[self.tabBarView setSelectedTabIndex:MIN(_selectedTabIndex, _documents.count-1)];
+			[self.tabBarView setSelectedTab:MIN(_selectedTabIndex, _documents.count-1)];
 	}
 
 	if(@available(macos 10.12, *))
@@ -1560,7 +1570,7 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 - (void)setSelectedTabIndex:(NSUInteger)newSelectedTabIndex
 {
 	_selectedTabIndex = newSelectedTabIndex;
-	[self.tabBarView setSelectedTabIndex:newSelectedTabIndex];
+	[self.tabBarView setSelectedTab:newSelectedTabIndex];
 }
 
 - (void)setIdentifier:(NSUUID*)newIdentifier

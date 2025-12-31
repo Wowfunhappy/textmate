@@ -27,7 +27,7 @@ static NSTextField* OakCreateTextField (NSString* label)
 	if(@available(macos 10.10, *))
 		res.textColor = NSColor.secondaryLabelColor;
 	else
-		res.textColor = [NSColor colorWithCalibratedWhite:0.0 alpha:0.5];
+		[[res cell] setBackgroundStyle:NSBackgroundStyleRaised];
 
 	return res;
 }
@@ -39,6 +39,9 @@ static NSPopUpButton* OakCreateStatusBarPopUpButton (NSString* initialItemTitle 
 	res.bordered = NO;
 	if(@available(macos 10.10, *))
 		res.accessibilityLabel = accessibilityLabel;
+	else
+		[[res cell] setBackgroundStyle:NSBackgroundStyleRaised];
+	OakSetAccessibilityLabel(res, accessibilityLabel);
 	return res;
 }
 
@@ -47,6 +50,8 @@ static NSButton* OakCreateImageToggleButton (NSImage* image, NSString* accessibi
 	NSButton* res = [NSButton new];
 	if(@available(macos 10.10, *))
 		res.accessibilityLabel = accessibilityLabel;
+	else
+		[[res cell] setBackgroundStyle:NSBackgroundStyleRaised];
 	[res setButtonType:NSButtonTypeToggle];
 	[res setBordered:NO];
 	[res setImage:image];
@@ -71,18 +76,24 @@ static NSButton* OakCreateImageToggleButton (NSImage* image, NSString* accessibi
 {
 	if(self = [super initWithFrame:aRect])
 	{
-		NSImage* recordMacroImage = [NSImage imageWithSize:NSMakeSize(16, 16) flipped:NO drawingHandler:^BOOL(NSRect dstRect){
-			NSColor* redColor;
-			if(@available(macos 10.10, *))
-				redColor = NSColor.systemRedColor;
-			else
-				redColor = [NSColor redColor];
-			[redColor set];
-			[[NSBezierPath bezierPathWithOvalInRect:NSInsetRect(dstRect, 2, 2)] fill];
-			return YES;
-		}];
+		NSImage* recordMacroImage;
+		if(@available(macos 10.10, *))
+		{
+			recordMacroImage = [NSImage imageWithSize:NSMakeSize(16, 16) flipped:NO drawingHandler:^BOOL(NSRect dstRect){
+				[NSColor.systemRedColor set];
+				[[NSBezierPath bezierPathWithOvalInRect:NSInsetRect(dstRect, 2, 2)] fill];
+				return YES;
+			}];
+		}
+		else
+		{
+			recordMacroImage = [NSImage imageNamed:@"Recording" inSameBundleAsClass:[self class]];
+		}
 
-		self.style = OakBackgroundFillViewStyleStatusBar;
+		if(@available(macos 10.10, *))
+			self.style = OakBackgroundFillViewStyleStatusBar;
+		else
+			[self setupStatusBarBackground];
 
 		self.selectionField               = OakCreateTextField(@"1:1");
 		self.grammarPopUp                 = OakCreateStatusBarPopUpButton(@"", @"Grammar");
@@ -192,6 +203,16 @@ static NSButton* OakCreateImageToggleButton (NSImage* image, NSString* accessibi
 - (NSSize)intrinsicContentSize
 {
 	return NSMakeSize(-1, 24); // -1 is NSViewNoIntrinsicMetric
+}
+
+- (void)drawRect:(NSRect)aRect
+{
+	if([self.window contentBorderThicknessForEdge:NSMinYEdge] < NSMaxY(self.frame))
+	{
+		[[NSColor windowBackgroundColor] set];
+		NSRectFill(aRect);
+		[super drawRect:aRect];
+	}
 }
 
 - (void)updateMacroRecordingAnimation:(NSTimer*)aTimer

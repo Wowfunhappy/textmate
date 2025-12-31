@@ -18,6 +18,8 @@ PUBLIC @interface OakBackgroundFillView : NSView
 @property (nonatomic) NSGradient* activeBackgroundGradient;
 @property (nonatomic) NSGradient* inactiveBackgroundGradient;
 @property (nonatomic) BOOL active;
+- (void)setupHeaderBackground;
+- (void)setupStatusBarBackground;
 @end
 
 PUBLIC NSFont* OakStatusBarFont ();
@@ -36,3 +38,4 @@ PUBLIC OakBackgroundFillView* OakCreateVerticalLine (OakBackgroundFillViewStyle 
 PUBLIC OakBackgroundFillView* OakCreateHorizontalLine (OakBackgroundFillViewStyle style);
 PUBLIC void OakSetupKeyViewLoop (NSArray* views, BOOL setFirstResponder = YES);
 PUBLIC void OakAddAutoLayoutViewsToSuperview (NSArray* views, NSView* superview);
+PUBLIC BOOL OakSetAccessibilityLabel (NSObject* element, NSObject* label);

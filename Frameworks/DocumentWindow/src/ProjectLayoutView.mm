@@ -179,8 +179,16 @@ NSString* const kUserDefaultsHTMLOutputSizeKey   = @"htmlOutputSize";
 		[_myConstraints addObject:self.fileBrowserWidthConstraint];
 
 		// top
-		CONSTRAINT(@"V:|[fileBrowserDivider]", 0);
-		CONSTRAINT(@"V:|[fileBrowserView]", 0);
+		if(_tabBarView)
+		{
+			CONSTRAINT(@"V:[tabBarView][fileBrowserDivider]", 0);
+			CONSTRAINT(@"V:[tabBarView][fileBrowserView]", 0);
+		}
+		else
+		{
+			CONSTRAINT(@"V:|[fileBrowserDivider]", 0);
+			CONSTRAINT(@"V:|[fileBrowserView]", 0);
+		}
 
 		// bottom
 		if(_htmlOutputView && !_htmlOutputOnRight)
