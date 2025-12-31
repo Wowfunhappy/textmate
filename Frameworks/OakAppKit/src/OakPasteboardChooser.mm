@@ -68,7 +68,7 @@
 @property (nonatomic) NSSearchField*        searchField;
 @property (nonatomic) NSScrollView*         scrollView;
 @property (nonatomic) NSTableView*          tableView;
-@property (nonatomic) NSVisualEffectView*   footerView;
+@property (nonatomic) NSView*   footerView;
 @property (nonatomic) BOOL                  didFetchTableViewData;
 @end
 
@@ -199,9 +199,12 @@ static NSMutableDictionary* SharedChoosers;
 	titlebarView.translatesAutoresizingMaskIntoConstraints = NO;
 	[titlebarView setFrameSize:titlebarView.fittingSize];
 
-	_accessoryViewController = [[NSTitlebarAccessoryViewController alloc] init];
-	_accessoryViewController.view = titlebarView;
-	[self.window addTitlebarAccessoryViewController:_accessoryViewController];
+	if(@available(macos 10.10, *))
+	{
+		_accessoryViewController = [[NSTitlebarAccessoryViewController alloc] init];
+		_accessoryViewController.view = titlebarView;
+		[self.window addTitlebarAccessoryViewController:_accessoryViewController];
+	}
 }
 
 - (void)updateScrollViewInsets
@@ -264,15 +267,23 @@ static NSMutableDictionary* SharedChoosers;
 	return _scrollView;
 }
 
-- (NSVisualEffectView*)footerView
+- (NSView*)footerView
 {
 	if(!_footerView)
 	{
-		_footerView = [[NSVisualEffectView alloc] initWithFrame:NSZeroRect];
-		_footerView.blendingMode = NSVisualEffectBlendingModeWithinWindow;
-		_footerView.material     = NSVisualEffectMaterialTitlebar;
-		if(@available(macos 10.14, *))
-			_footerView.material = NSVisualEffectMaterialHeaderView;
+		if(@available(macos 10.10, *))
+		{
+			NSVisualEffectView* effectView = [[NSVisualEffectView alloc] initWithFrame:NSZeroRect];
+			effectView.blendingMode = NSVisualEffectBlendingModeWithinWindow;
+			effectView.material     = NSVisualEffectMaterialTitlebar;
+			if(@available(macos 10.14, *))
+				effectView.material = NSVisualEffectMaterialHeaderView;
+			_footerView = effectView;
+		}
+		else
+		{
+			_footerView = [[NSView alloc] initWithFrame:NSZeroRect];
+		}
 
 		NSView* contentView = self.window.contentView;
 		contentView.wantsLayer = YES;

@@ -80,8 +80,11 @@ NSPopUpButton* OakCreatePopUpButton (BOOL pullsDown, NSString* initialItemTitle,
 	NSPopUpButton* res = [[NSPopUpButton alloc] initWithFrame:NSZeroRect pullsDown:pullsDown];
 	if(initialItemTitle)
 		[[res cell] setMenuItem:[[NSMenuItem alloc] initWithTitle:initialItemTitle action:NULL keyEquivalent:@""]];
-	if(labelView)
-		res.accessibilityTitleUIElement = labelView;
+	if(@available(macos 10.10, *))
+	{
+		if(labelView)
+			res.accessibilityTitleUIElement = labelView;
+	}
 	return res;
 }
 
@@ -98,7 +101,8 @@ NSPopUpButton* OakCreateActionPopUpButton (BOOL bordered)
 
 	[[res cell] setUsesItemFromMenu:NO];
 	[[res cell] setMenuItem:item];
-	res.accessibilityLabel = @"Actions";
+	if(@available(macos 10.10, *))
+		res.accessibilityLabel = @"Actions";
 
 	return res;
 }
@@ -107,7 +111,8 @@ NSComboBox* OakCreateComboBox (NSView* labelView)
 {
 	NSComboBox* res = [[NSComboBox alloc] initWithFrame:NSZeroRect];
 	res.font = OakControlFont();
-	res.accessibilityTitleUIElement = labelView;
+	if(@available(macos 10.10, *))
+		res.accessibilityTitleUIElement = labelView;
 	return res;
 }
 
@@ -118,7 +123,8 @@ OakRolloverButton* OakCreateCloseButton (NSString* accessibilityLabel)
 	closeButton.pressedImage  = [NSImage imageNamed:@"ClosePressedTemplate"  inSameBundleAsClass:[OakRolloverButton class]];
 	closeButton.rolloverImage = [NSImage imageNamed:@"CloseRolloverTemplate" inSameBundleAsClass:[OakRolloverButton class]];
 
-	closeButton.accessibilityLabel = accessibilityLabel;
+	if(@available(macos 10.10, *))
+		closeButton.accessibilityLabel = accessibilityLabel;
 	return closeButton;
 }
 
@@ -213,7 +219,7 @@ OakRolloverButton* OakCreateCloseButton (NSString* accessibilityLabel)
 {
 	if(NSImage* image = self.activeBackgroundImage ?: self.inactiveBackgroundImage)
 			return image.size;
-	else	return NSMakeSize(NSViewNoIntrinsicMetric, NSViewNoIntrinsicMetric);
+	else	return NSMakeSize(-1, -1); // -1 is NSViewNoIntrinsicMetric
 }
 
 - (void)setStyle:(OakBackgroundFillViewStyle)aStyle
@@ -249,6 +255,25 @@ OakRolloverButton* OakCreateCloseButton (NSString* accessibilityLabel)
 		{
 			self.activeBackgroundGradient   = [[NSGradient alloc] initWithStartingColor:[NSColor colorWithCalibratedWhite:0.915 alpha:1] endingColor:[NSColor colorWithCalibratedWhite:0.760 alpha:1]];
 			self.inactiveBackgroundGradient = [[NSGradient alloc] initWithStartingColor:[NSColor colorWithCalibratedWhite:0.915 alpha:1] endingColor:[NSColor colorWithCalibratedWhite:0.915 alpha:1]];
+		}
+	}
+
+	if(self.style == OakBackgroundFillViewStyleStatusBar)
+	{
+		if(@available(macos 10.10, *))
+		{
+			NSVisualEffectView* effectView = [[NSVisualEffectView alloc] initWithFrame:[self bounds]];
+			effectView.material     = NSVisualEffectMaterialTitlebar;
+			effectView.blendingMode = NSVisualEffectBlendingModeWithinWindow;
+			effectView.state        = NSVisualEffectStateFollowsWindowActiveState;
+			_visualEffectBackgroundView = effectView;
+			[_visualEffectBackgroundView setAutoresizingMask:NSViewWidthSizable|NSViewHeightSizable];
+			[self addSubview:_visualEffectBackgroundView positioned:NSWindowBelow relativeTo:nil];
+		}
+		else
+		{
+			self.activeBackgroundGradient   = [[NSGradient alloc] initWithColorsAndLocations:[NSColor colorWithCalibratedWhite:1 alpha:0.68], 0.0, [NSColor colorWithCalibratedWhite:1 alpha:0.5], 0.0416, [NSColor colorWithCalibratedWhite:1 alpha:0], 1.0, nil];
+			self.inactiveBackgroundGradient = [[NSGradient alloc] initWithColorsAndLocations:[NSColor colorWithCalibratedWhite:1 alpha:0.68], 0.0, [NSColor colorWithCalibratedWhite:1 alpha:0.5], 0.0416, [NSColor colorWithCalibratedWhite:1 alpha:0], 1.0, nil];
 		}
 	}
 

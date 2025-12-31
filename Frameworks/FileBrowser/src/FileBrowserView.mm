@@ -91,8 +91,11 @@ static NSMutableIndexSet* MutableLongestCommonSubsequence (NSArray* lhs, NSArray
 {
 	if(self = [super initWithFrame:aRect])
 	{
-		self.accessibilityRole  = NSAccessibilityGroupRole;
-		self.accessibilityLabel = @"File browser";
+		if(@available(macos 10.10, *))
+		{
+			self.accessibilityRole  = NSAccessibilityGroupRole;
+			self.accessibilityLabel = @"File browser";
+		}
 
 		_fileItemObservers = [NSMutableDictionary dictionary];
 		_loadingURLs       = [NSMutableSet set];
@@ -108,7 +111,8 @@ static NSMutableIndexSet* MutableLongestCommonSubsequence (NSArray* lhs, NSArray
 		_actionsView   = [[OFBActionsView alloc] initWithFrame:NSZeroRect];
 
 		_outlineView = [[FileBrowserOutlineView alloc] initWithFrame:NSZeroRect];
-		_outlineView.accessibilityLabel       = @"Files";
+		if(@available(macos 10.10, *))
+			_outlineView.accessibilityLabel   = @"Files";
 		_outlineView.allowsMultipleSelection  = YES;
 		_outlineView.autoresizesOutlineColumn = NO;
 		_outlineView.dataSource               = self;

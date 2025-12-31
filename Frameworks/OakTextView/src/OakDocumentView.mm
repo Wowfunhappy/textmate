@@ -57,8 +57,11 @@ static NSString* const kFoldingsColumnIdentifier  = @"foldings";
 	D(DBF_OakDocumentView, bug("%s\n", [NSStringFromRect(aRect) UTF8String]););
 	if(self = [super initWithFrame:aRect])
 	{
-		self.accessibilityRole  = NSAccessibilityGroupRole;
-		self.accessibilityLabel = @"Editor";
+		if(@available(macos 10.10, *))
+		{
+			self.accessibilityRole  = NSAccessibilityGroupRole;
+			self.accessibilityLabel = @"Editor";
+		}
 
 		_textView = [[OakTextView alloc] initWithFrame:NSZeroRect];
 		_textView.autoresizingMask = NSViewWidthSizable|NSViewHeightSizable;
@@ -81,7 +84,8 @@ static NSString* const kFoldingsColumnIdentifier  = @"foldings";
 		[gutterView setTranslatesAutoresizingMaskIntoConstraints:NO];
 
 		gutterScrollView = [[NSScrollView alloc] initWithFrame:NSZeroRect];
-		gutterScrollView.accessibilityElement = NO;
+		if(@available(macos 10.10, *))
+			gutterScrollView.accessibilityElement = NO;
 		gutterScrollView.borderType   = NSNoBorder;
 		gutterScrollView.documentView = gutterView;
 
@@ -398,13 +402,17 @@ static NSString* const kFoldingsColumnIdentifier  = @"foldings";
 
 - (void)viewDidChangeEffectiveAppearance
 {
-	NSUserDefaults* defaults = [NSUserDefaults standardUserDefaults];
-	if([defaults boolForKey:@"changeThemeBasedOnAppearance"])
+	if(@available(macos 10.14, *))
 	{
-		NSAppearanceName appearanceName = [self.effectiveAppearance bestMatchFromAppearancesWithNames:@[ NSAppearanceNameAqua, NSAppearanceNameDarkAqua ]];
-		if([appearanceName isEqualToString:NSAppearanceNameDarkAqua])
-				[self setThemeWithUUID:[defaults stringForKey:@"darkModeThemeUUID"]  ?: to_ns(kTwilightThemeUUID)];
-		else	[self setThemeWithUUID:[defaults stringForKey:@"universalThemeUUID"] ?: to_ns(kMacClassicThemeUUID)];
+		NSUserDefaults* defaults = [NSUserDefaults standardUserDefaults];
+		if([defaults boolForKey:@"changeThemeBasedOnAppearance"])
+		{
+			NSAppearanceName darkAquaName = @"NSAppearanceNameDarkAqua";
+			NSAppearanceName appearanceName = [self.effectiveAppearance bestMatchFromAppearancesWithNames:@[ NSAppearanceNameAqua, darkAquaName ]];
+			if([appearanceName isEqualToString:darkAquaName])
+					[self setThemeWithUUID:[defaults stringForKey:@"darkModeThemeUUID"]  ?: to_ns(kTwilightThemeUUID)];
+			else	[self setThemeWithUUID:[defaults stringForKey:@"universalThemeUUID"] ?: to_ns(kMacClassicThemeUUID)];
+		}
 	}
 }
 

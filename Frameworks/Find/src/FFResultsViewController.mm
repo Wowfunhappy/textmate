@@ -246,7 +246,11 @@ static FFResultNode* PreviousNode (FFResultNode* node)
 
 		NSRect rect = NSUnionRect(self.imageView.bounds, NSMakeRect(0, 0, 16, 16));
 		NSImage* image = [NSImage imageWithSize:rect.size flipped:NO drawingHandler:^BOOL(NSRect dstRect){
-			NSColor* color = [NSColor secondaryLabelColor];
+			NSColor* color;
+			if(@available(macos 10.10, *))
+				color = [NSColor secondaryLabelColor];
+			else
+				color = [NSColor colorWithCalibratedWhite:0.0 alpha:0.5];
 
 			CGFloat ptrn[] = { 2, 1 };
 			NSBezierPath* path = [NSBezierPath bezierPathWithRoundedRect:NSIntegralRect(NSInsetRect(dstRect, 1, 1)) xRadius:2 yRadius:2];
@@ -315,7 +319,8 @@ static FFResultNode* PreviousNode (FFResultNode* node)
 		_bottomDivider = OakCreateHorizontalLine(OakBackgroundFillViewStyleDivider);
 
 		_outlineView = [[NSOutlineView alloc] initWithFrame:NSZeroRect];
-		_outlineView.accessibilityLabel                 = @"Results";
+		if(@available(macos 10.10, *))
+			_outlineView.accessibilityLabel             = @"Results";
 		_outlineView.focusRingType                      = NSFocusRingTypeNone;
 		_outlineView.allowsMultipleSelection            = YES;
 		_outlineView.autoresizesOutlineColumn           = NO;

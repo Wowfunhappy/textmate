@@ -39,9 +39,12 @@ static NSPopUpButton* OakCreateFolderPopUpButton ()
 		self.goForwardButton         = OakCreateImageButton(NSImageNameGoRightTemplate);
 		self.goForwardButton.toolTip = @"Go Forward";
 
-		self.folderPopUpButton.accessibilityLabel           = @"Current folder";
-		self.goBackButton.image.accessibilityDescription    = self.goBackButton.toolTip;
-		self.goForwardButton.image.accessibilityDescription = self.goForwardButton.toolTip;
+		if(@available(macos 10.10, *))
+		{
+			self.folderPopUpButton.accessibilityLabel           = @"Current folder";
+			self.goBackButton.image.accessibilityDescription    = self.goBackButton.toolTip;
+			self.goForwardButton.image.accessibilityDescription = self.goForwardButton.toolTip;
+		}
 
 		_bottomDivider = OakCreateHorizontalLine(OakBackgroundFillViewStyleDivider);
 
@@ -65,6 +68,6 @@ static NSPopUpButton* OakCreateFolderPopUpButton ()
 
 - (NSSize)intrinsicContentSize
 {
-	return NSMakeSize(NSViewNoIntrinsicMetric, 24);
+	return NSMakeSize(-1, 24); // -1 is NSViewNoIntrinsicMetric
 }
 @end

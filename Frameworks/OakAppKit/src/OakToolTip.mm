@@ -62,8 +62,9 @@ static __weak OakToolTip* LastToolTip;
 			[self.contentView addSubview:effectView];
 			[field setTextColor:NSColor.labelColor];
 
-			NSAppearanceName appearanceName = [NSApp.effectiveAppearance bestMatchFromAppearancesWithNames:@[ NSAppearanceNameAqua, NSAppearanceNameDarkAqua ]];
-			if([appearanceName isEqualToString:NSAppearanceNameDarkAqua])
+			NSAppearanceName darkAquaName = @"NSAppearanceNameDarkAqua";
+			NSAppearanceName appearanceName = [NSApp.effectiveAppearance bestMatchFromAppearancesWithNames:@[ NSAppearanceNameAqua, darkAquaName ]];
+			if([appearanceName isEqualToString:darkAquaName])
 				[field setBordered:YES];
 		}
 		else

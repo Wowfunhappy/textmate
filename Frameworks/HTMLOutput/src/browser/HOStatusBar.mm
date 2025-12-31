@@ -40,10 +40,7 @@ static NSTextField* OakCreateTextField ()
 {
 	if(self = [super initWithFrame:frame])
 	{
-		self.wantsLayer   = YES;
-		self.material     = NSVisualEffectMaterialTitlebar;
-		self.blendingMode = NSVisualEffectBlendingModeWithinWindow;
-		self.state        = NSVisualEffectStateFollowsWindowActiveState;
+		self.style = OakBackgroundFillViewStyleStatusBar;
 
 		_indeterminateProgress = YES;
 
@@ -87,7 +84,7 @@ static NSTextField* OakCreateTextField ()
 
 - (NSSize)intrinsicContentSize
 {
-	return NSMakeSize(NSViewNoIntrinsicMetric, 24);
+	return NSMakeSize(-1, 24); // -1 is NSViewNoIntrinsicMetric
 }
 
 - (void)updateConstraints

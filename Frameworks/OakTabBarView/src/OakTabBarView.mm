@@ -243,8 +243,11 @@ static void* kOakTabViewSelectedContext  = &kOakTabViewSelectedContext;
 {
 	if(self = [super initWithFrame:frameRect])
 	{
-		self.accessibilityRole            = NSAccessibilityRadioButtonRole;
-		self.accessibilityRoleDescription = @"Tab";
+		if(@available(macos 10.10, *))
+		{
+			self.accessibilityRole            = NSAccessibilityRadioButtonRole;
+			self.accessibilityRoleDescription = @"Tab";
+		}
 
 		_tabBarView = tabBarView;
 
@@ -260,7 +263,10 @@ static void* kOakTabViewSelectedContext  = &kOakTabViewSelectedContext;
 			_topBorderView.fillColor   = [NSColor colorWithCalibratedWhite:NSBlack alpha:0.25];
 			_leftBorderView.fillColor  = [NSColor colorWithCalibratedWhite:NSBlack alpha:0.25];
 
-			_textField.textColor  = NSColor.secondaryLabelColor;
+			if(@available(macos 10.10, *))
+				_textField.textColor = NSColor.secondaryLabelColor;
+			else
+				_textField.textColor = [NSColor colorWithCalibratedWhite:0.0 alpha:0.5];
 			_textField.alphaValue = _selected ? 1 : 0.5;
 		});
 
@@ -293,8 +299,12 @@ static void* kOakTabViewSelectedContext  = &kOakTabViewSelectedContext;
 		[self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-(3@53)-[close]-(>=3@53)-[title]-(>=6@53)-|" options:0 metrics:nil views:views]];
 
 		_overflowButtonConstraints = [NSLayoutConstraint constraintsWithVisualFormat:@"H:[title]-(>=3@53)-[overflow]" options:0 metrics:nil views:views];
-		[NSLayoutConstraint deactivateConstraints:_overflowButtonConstraints];
-		[self addConstraints:_overflowButtonConstraints];
+		if(@available(macos 10.10, *))
+		{
+			[NSLayoutConstraint deactivateConstraints:_overflowButtonConstraints];
+			[self addConstraints:_overflowButtonConstraints];
+		}
+		// On 10.9, constraints will be added/removed via setOverflowButtonVisible:
 
 		[self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:[overflow]|" options:0 metrics:nil views:views]];
 		[self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:[close]-(4)-|" options:0 metrics:nil views:views]];
@@ -376,18 +386,24 @@ static void* kOakTabViewSelectedContext  = &kOakTabViewSelectedContext;
 	[_tabItem addObserver:self forKeyPath:@"modified" options:NSKeyValueObservingOptionInitial context:kOakTabViewModifiedContext];
 	[_tabItem addObserver:self forKeyPath:@"selected" options:NSKeyValueObservingOptionInitial context:kOakTabViewSelectedContext];
 
-	if(_tabItem)
+	if(@available(macos 10.10, *))
 	{
-		self.accessibilityElement                     = YES;
-		self.closeButton.cell.accessibilityElement    = YES;
-		self.overflowButton.cell.accessibilityElement = YES;
+		if(_tabItem)
+		{
+			self.accessibilityElement                     = YES;
+			self.closeButton.cell.accessibilityElement    = YES;
+			self.overflowButton.cell.accessibilityElement = YES;
+		}
+		else
+		{
+			self.accessibilityElement                     = NO;
+			self.closeButton.cell.accessibilityElement    = NO;
+			self.overflowButton.cell.accessibilityElement = NO;
+		}
 	}
-	else
-	{
-		self.accessibilityElement                     = NO;
-		self.closeButton.cell.accessibilityElement    = NO;
-		self.overflowButton.cell.accessibilityElement = NO;
 
+	if(!_tabItem)
+	{
 		self.textField.alphaValue      = 0.0;
 		self.backgroundView.alphaValue = 0.1;
 		self.topBorderView.alphaValue  = 1;
@@ -417,7 +433,8 @@ static void* kOakTabViewSelectedContext  = &kOakTabViewSelectedContext;
 	{
 		_closeButton = [[OakRolloverButton alloc] initWithFrame:NSZeroRect];
 
-		_closeButton.accessibilityLabel                 = @"Close tab";
+		if(@available(macos 10.10, *))
+			_closeButton.accessibilityLabel             = @"Close tab";
 		_closeButton.action                             = @selector(didClickCloseButton:);
 		_closeButton.target                             = self;
 		_closeButton.disableWindowOrderingForFirstMouse = YES;
@@ -434,7 +451,8 @@ static void* kOakTabViewSelectedContext  = &kOakTabViewSelectedContext;
 		_overflowButton = [[OakRolloverButton alloc] initWithFrame:NSZeroRect];
 		[_overflowButton sendActionOn:NSEventMaskLeftMouseDown];
 
-		_overflowButton.accessibilityLabel = @"Show tab overflow menu";
+		if(@available(macos 10.10, *))
+			_overflowButton.accessibilityLabel = @"Show tab overflow menu";
 		_overflowButton.action             = @selector(didClickOverflorButton:);
 		_overflowButton.target             = self;
 		_overflowButton.regularImage       = [NSImage imageNamed:@"TabOverflowThinTemplate" inSameBundleAsClass:self];
@@ -451,9 +469,18 @@ static void* kOakTabViewSelectedContext  = &kOakTabViewSelectedContext;
 {
 	_overflowButtonVisible = flag;
 	self.overflowButton.hidden = !flag;
-	if(flag)
-			[NSLayoutConstraint activateConstraints:_overflowButtonConstraints];
-	else	[NSLayoutConstraint deactivateConstraints:_overflowButtonConstraints];
+	if(@available(macos 10.10, *))
+	{
+		if(flag)
+				[NSLayoutConstraint activateConstraints:_overflowButtonConstraints];
+		else	[NSLayoutConstraint deactivateConstraints:_overflowButtonConstraints];
+	}
+	else
+	{
+		if(flag)
+				[self addConstraints:_overflowButtonConstraints];
+		else	[self removeConstraints:_overflowButtonConstraints];
+	}
 }
 
 - (NSString*)accessibilityLabel { return self.tabItem.isModified ? [self.tabItem.title stringByAppendingString:@" (modified)"] : self.tabItem.title; }
@@ -514,7 +541,10 @@ static void* kOakTabViewSelectedContext  = &kOakTabViewSelectedContext;
 - (void)windowDidChangeMainOrKey:(NSNotification*)aNotification
 {
 	BOOL isActive = self.window.isKeyWindow || self.window.isMainWindow || self.isInFullScreenMode;
-	_textField.textColor = isActive ? NSColor.secondaryLabelColor : NSColor.tertiaryLabelColor;
+	if(@available(macos 10.10, *))
+		_textField.textColor = isActive ? NSColor.secondaryLabelColor : NSColor.tertiaryLabelColor;
+	else
+		_textField.textColor = isActive ? [NSColor colorWithCalibratedWhite:0.0 alpha:0.5] : [NSColor colorWithCalibratedWhite:0.0 alpha:0.25];
 }
 
 - (NSView*)hitTest:(NSPoint)aPoint
@@ -690,8 +720,11 @@ static void* kOakTabViewSelectedContext  = &kOakTabViewSelectedContext;
 
 	if(self = [super initWithFrame:aRect])
 	{
-		self.accessibilityRole  = NSAccessibilityTabGroupRole;
-		self.accessibilityLabel = @"Open files";
+		if(@available(macos 10.10, *))
+		{
+			self.accessibilityRole  = NSAccessibilityTabGroupRole;
+			self.accessibilityLabel = @"Open files";
+		}
 
 		_minimumTabSize = [NSUserDefaults.standardUserDefaults integerForKey:kUserDefaultsTabItemMinWidthKey];
 		_maximumTabSize = [NSUserDefaults.standardUserDefaults integerForKey:kUserDefaultsTabItemMaxWidthKey];
@@ -713,7 +746,7 @@ static void* kOakTabViewSelectedContext  = &kOakTabViewSelectedContext;
 
 - (NSSize)intrinsicContentSize
 {
-	return NSMakeSize(NSViewNoIntrinsicMetric, 23);
+	return NSMakeSize(-1, 23); // -1 is NSViewNoIntrinsicMetric (10.11+)
 }
 
 - (BOOL)mouseDownCanMoveWindow
@@ -726,7 +759,8 @@ static void* kOakTabViewSelectedContext  = &kOakTabViewSelectedContext;
 	if(!_createNewTabButton)
 	{
 		_createNewTabButton = [[NSButton alloc] initWithFrame:NSMakeRect(0, 2, 26, 20)];
-		_createNewTabButton.accessibilityLabel = @"Create new tab";
+		if(@available(macos 10.10, *))
+			_createNewTabButton.accessibilityLabel = @"Create new tab";
 		_createNewTabButton.image      = [NSImage imageNamed:NSImageNameAddTemplate];
 		_createNewTabButton.bordered   = NO;
 		_createNewTabButton.buttonType = NSButtonTypeMomentaryChange;

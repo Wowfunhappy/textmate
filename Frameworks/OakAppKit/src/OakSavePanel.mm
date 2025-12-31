@@ -47,8 +47,11 @@
 
 	[encodingPopUpButton setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow forOrientation:NSLayoutConstraintOrientationHorizontal];
 
-	encodingPopUpButton.accessibilityLabel    = @"Encoding";
-	lineEndingsPopUpButton.accessibilityLabel = @"Line endings";
+	if(@available(macos 10.10, *))
+	{
+		encodingPopUpButton.accessibilityLabel    = @"Encoding";
+		lineEndingsPopUpButton.accessibilityLabel = @"Line endings";
+	}
 
 	NSArray* titles = @[ @"LF", @"CR", @"CRLF" ];
 	for(NSUInteger i = 0; i < [titles count]; ++i)

@@ -35,7 +35,10 @@ static constexpr CGFloat SwatchButtonWidth  = 24;
 		}
 		else
 		{
-			borderColor = [NSColor secondaryLabelColor];
+			if(@available(macos 10.10, *))
+				borderColor = [NSColor secondaryLabelColor];
+			else
+				borderColor = [NSColor colorWithCalibratedWhite:0.0 alpha:0.5];
 			fillColor = [NSColor clearColor];
 			markColor = borderColor;
 		}
@@ -144,7 +147,8 @@ static constexpr CGFloat SwatchButtonWidth  = 24;
 		self.autoresizingMask = NSViewWidthSizable|NSViewHeightSizable;
 
 		_tagTextField = [[NSTextField alloc] initWithFrame:NSZeroRect];
-		_tagTextField.cell.accessibilityElement = NO;
+		if(@available(macos 10.10, *))
+			_tagTextField.cell.accessibilityElement = NO;
 		_tagTextField.font            = [aMenu font];
 		_tagTextField.textColor       = [NSColor disabledControlTextColor];
 		_tagTextField.bezeled         = NO;
@@ -165,7 +169,8 @@ static constexpr CGFloat SwatchButtonWidth  = 24;
 			BOOL isRemovable  = [_selectedTagsToRemove containsObject:tag];
 
 			OakRolloverButton* button = [[OakRolloverButton alloc] initWithFrame:NSZeroRect];
-			button.accessibilityLabel = [NSString stringWithFormat:@"%@ tag %@", (isRemovable ? @"Remove" : @"Add"), tag.displayName];
+			if(@available(macos 10.10, *))
+				button.accessibilityLabel = [NSString stringWithFormat:@"%@ tag %@", (isRemovable ? @"Remove" : @"Add"), tag.displayName];
 
 			button.regularImage  = [OFBFinderTagImage imageWithSize:NSMakeSize(SwatchButtonWidth, SwatchButtonWidth) forLabelColor:tag.labelColor selected:isSelected removable:isRemovable mouseOver:NO];
 			button.pressedImage  = [OFBFinderTagImage imageWithSize:NSMakeSize(SwatchButtonWidth, SwatchButtonWidth) forLabelColor:tag.labelColor selected:isSelected removable:isRemovable mouseOver:YES];

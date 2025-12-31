@@ -1,6 +1,36 @@
 #import "NSColor Additions.h"
 #import <OakFoundation/OakFoundation.h>
 #import <oak/debug.h>
+#import <objc/runtime.h>
+
+// Provide fallback label colors for 10.9 (these were introduced in 10.10)
+static NSColor* OakLabelColor ()
+{
+	if(@available(macos 10.10, *))
+		return [NSColor labelColor];
+	return [NSColor blackColor];
+}
+
+static NSColor* OakSecondaryLabelColor ()
+{
+	if(@available(macos 10.10, *))
+		return [NSColor secondaryLabelColor];
+	return [NSColor colorWithCalibratedWhite:0.0 alpha:0.5];
+}
+
+static NSColor* OakTertiaryLabelColor ()
+{
+	if(@available(macos 10.10, *))
+		return [NSColor tertiaryLabelColor];
+	return [NSColor colorWithCalibratedWhite:0.0 alpha:0.25];
+}
+
+static NSColor* OakQuaternaryLabelColor ()
+{
+	if(@available(macos 10.10, *))
+		return [NSColor quaternaryLabelColor];
+	return [NSColor colorWithCalibratedWhite:0.0 alpha:0.1];
+}
 
 @implementation NSColor (TMColorAdditions)
 + (NSColor*)colorWithString:(NSString*)aString

@@ -1,4 +1,5 @@
 #!/System/Library/Frameworks/Ruby.framework/Versions/Current/usr/bin/ruby
+# encoding: UTF-8
 # == Synopsis
 #
 # process_plist: substitute ${VARIABLES} in text files
@@ -45,7 +46,8 @@ OptionParser.new do |opts|
   end
 end.parse!
 
-while gets
+while line = ARGF.gets
+  $_ = line.force_encoding('UTF-8')
   $_.gsub!(/\$\{(.*?)\}/) do
     value = nil
     if variables.include?($1)

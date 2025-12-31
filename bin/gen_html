@@ -1,4 +1,5 @@
 #!/System/Library/Frameworks/Ruby.framework/Versions/Current/usr/bin/ruby
+# encoding: UTF-8
 # == Synopsis
 #
 # gen_html: generates HTML file from markdown and optional template(s)
@@ -30,7 +31,7 @@ def expand_tpl(str, binding)
 end
 
 def expand_tpl_file(path, binding)
-  expand_tpl(File.read(path), binding)
+  expand_tpl(File.read(path).force_encoding('UTF-8'), binding)
 end
 
 def find_exe(cmd)
@@ -99,7 +100,7 @@ abort "Unable to find a markdown compiler" if filter.nil?
 
 filters    = "|#{filter} --nosmart"
 
-document   = ARGF.read
+document   = ARGF.read.force_encoding('UTF-8')
 document   = wrap_authors(wrap_key_equivalents(document))
 head, body = document.scan(/\A((?:^\w+:\s+.*$\n)*)\n?((?m:.*))\z/).flatten
 tmp        = head.scan(/^(\w+):\s+(.*)$/).collect { |pair| [pair[0].downcase, pair[1].strip] }
@@ -111,5 +112,5 @@ js_files   = headers['js'].to_s.split(/,\s*/)
 meta_data  = Hash[*headers['meta'].to_s.scan(/(.*?)="(.*?)"(?:,\s*)?/).flatten]
 
 STDOUT << expand_tpl_file(header, binding) unless header.nil?
-STDOUT << open(filters, 'r+') { |io| io << body; io.close_write; wrap_in_article(expand_tpl(io.read, binding)) }
+STDOUT << open(filters, 'r+') { |io| io << body; io.close_write; wrap_in_article(expand_tpl(io.read.force_encoding('UTF-8'), binding)) }
 STDOUT << expand_tpl_file(footer, binding) unless footer.nil?

@@ -52,7 +52,7 @@ static NSButton* OakCreateClickableStatusBar ()
 	NSTextFieldCell* cell = [self.cell copy];
 	cell.stringValue = aString;
 
-	self.myIntrinsicContentSize = NSMakeSize(NSViewNoIntrinsicMetric, MAX(22, MIN([cell cellSizeForBounds:NSMakeRect(0, 0, NSWidth([self bounds]), CGFLOAT_MAX)].height, 225)));
+	self.myIntrinsicContentSize = NSMakeSize(-1, MAX(22, MIN([cell cellSizeForBounds:NSMakeRect(0, 0, NSWidth([self bounds]), CGFLOAT_MAX)].height, 225))); // -1 is NSViewNoIntrinsicMetric
 	[self invalidateIntrinsicContentSize];
 }
 @end
@@ -63,7 +63,8 @@ static OakAutoSizingTextField* OakCreateTextField (id <NSTextFieldDelegate> dele
 	res.font = OakControlFont();
 	res.formatter = [[OakSyntaxFormatter alloc] initWithGrammarName:grammarName];
 	[[res cell] setWraps:YES];
-	res.accessibilityTitleUIElement = labelView;
+	if(@available(macos 10.10, *))
+		res.accessibilityTitleUIElement = labelView;
 	res.delegate = delegate;
 	return res;
 }
@@ -75,7 +76,8 @@ static NSButton* OakCreateHistoryButton (NSString* toolTip)
 	res.buttonType = NSMomentaryLightButton;
 	res.title      = @"";
 	res.toolTip    = toolTip;
-	res.accessibilityLabel = toolTip;
+	if(@available(macos 10.10, *))
+		res.accessibilityLabel = toolTip;
 	[res setContentCompressionResistancePriority:NSLayoutPriorityRequired forOrientation:NSLayoutConstraintOrientationHorizontal];
 	return res;
 }
@@ -100,7 +102,8 @@ static NSButton* OakCreateStopSearchButton ()
 	res.keyEquivalent = @".";
 	res.keyEquivalentModifierMask = NSEventModifierFlagCommand;
 	[res.cell setImageScaling:NSImageScaleProportionallyDown];
-	res.accessibilityLabel = res.toolTip;
+	if(@available(macos 10.10, *))
+		res.accessibilityLabel = res.toolTip;
 	return res;
 }
 
@@ -186,7 +189,8 @@ static NSButton* OakCreateStopSearchButton ()
 		self.countButton               = OakCreateButton(@"Σ", NSBezelStyleSmallSquare);
 
 		self.countButton.toolTip = @"Show Results Count";
-		self.countButton.accessibilityLabel = self.countButton.toolTip;
+		if(@available(macos 10.10, *))
+			self.countButton.accessibilityLabel = self.countButton.toolTip;
 
 		self.replaceLabel              = OakCreateLabel(@"Replace:");
 		self.replaceTextField          = OakCreateTextField(self, self.replaceLabel, @"textmate.format-string");

@@ -60,8 +60,9 @@ static NSData* Digest (NSString* someString)
 
 	if(@available(macos 10.14, *))
 	{
-		NSAppearanceName appearanceName = [NSApp.effectiveAppearance bestMatchFromAppearancesWithNames:@[ NSAppearanceNameAqua, NSAppearanceNameDarkAqua ]];
-		if([appearanceName isEqualToString:NSAppearanceNameDarkAqua])
+		NSAppearanceName darkAquaName = @"NSAppearanceNameDarkAqua";
+		NSAppearanceName appearanceName = [NSApp.effectiveAppearance bestMatchFromAppearancesWithNames:@[ NSAppearanceNameAqua, darkAquaName ]];
+		if([appearanceName isEqualToString:darkAquaName])
 		{
 			css = @":root {"
 				" --textColor:       #ffffffff;"

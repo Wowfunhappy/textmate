@@ -144,7 +144,7 @@ static NSTextView* MyCreateTextView ()
 @implementation EncodingContentView
 - (NSSize)intrinsicContentSize
 {
-	return NSMakeSize(NSViewNoIntrinsicMetric, NSViewNoIntrinsicMetric);
+	return NSMakeSize(-1, -1); // -1 is NSViewNoIntrinsicMetric
 }
 
 - (void)updateConstraints

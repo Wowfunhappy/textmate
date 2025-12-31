@@ -286,38 +286,44 @@ static NSString* const kAddLicenseViewIdentifier = @"org.TextMate.addLicenseButt
 
 - (void)addRegisterButtonToWindow:(NSWindow*)window
 {
-	NSButton* addLicenseButton = [[NSButton alloc] initWithFrame:NSZeroRect];
+	if(@available(macos 10.10, *))
+	{
+		NSButton* addLicenseButton = [[NSButton alloc] initWithFrame:NSZeroRect];
 
-	addLicenseButton.cell.backgroundStyle = NSBackgroundStyleRaised;
+		addLicenseButton.cell.backgroundStyle = NSBackgroundStyleRaised;
 
-	addLicenseButton.showsBorderOnlyWhileMouseInside = YES;
-	addLicenseButton.controlSize = NSControlSizeSmall;
-	addLicenseButton.font        = [NSFont messageFontOfSize:[NSFont systemFontSizeForControlSize:NSControlSizeSmall]];
-	addLicenseButton.bezelStyle  = NSBezelStyleRecessed;
-	addLicenseButton.buttonType  = NSButtonTypeMomentaryPushIn;
-	addLicenseButton.title       = @"Add License";
-	addLicenseButton.action      = @selector(showAddLicensePopover:);
-	addLicenseButton.target      = self;
+		addLicenseButton.showsBorderOnlyWhileMouseInside = YES;
+		addLicenseButton.controlSize = NSControlSizeSmall;
+		addLicenseButton.font        = [NSFont messageFontOfSize:[NSFont systemFontSizeForControlSize:NSControlSizeSmall]];
+		addLicenseButton.bezelStyle  = NSBezelStyleRecessed;
+		addLicenseButton.buttonType  = NSButtonTypeMomentaryPushIn;
+		addLicenseButton.title       = @"Add License";
+		addLicenseButton.action      = @selector(showAddLicensePopover:);
+		addLicenseButton.target      = self;
 
-	[addLicenseButton sizeToFit];
+		[addLicenseButton sizeToFit];
 
-	NSTitlebarAccessoryViewController* viewController = [[NSTitlebarAccessoryViewController alloc] init];
-	viewController.layoutAttribute = NSLayoutAttributeRight;
-	viewController.title = kAddLicenseViewIdentifier;
-	viewController.view = addLicenseButton;
-	[window addTitlebarAccessoryViewController:viewController];
+		NSTitlebarAccessoryViewController* viewController = [[NSTitlebarAccessoryViewController alloc] init];
+		viewController.layoutAttribute = NSLayoutAttributeRight;
+		viewController.title = kAddLicenseViewIdentifier;
+		viewController.view = addLicenseButton;
+		[window addTitlebarAccessoryViewController:viewController];
+	}
 }
 
 - (void)removeAllRegisterButtons:(id)sender
 {
-	for(NSWindow* win in [NSApp orderedWindows])
+	if(@available(macos 10.10, *))
 	{
-		NSArray* viewControllers = win.titlebarAccessoryViewControllers;
-		for(NSUInteger i = viewControllers.count; i != 0; )
+		for(NSWindow* win in [NSApp orderedWindows])
 		{
-			NSTitlebarAccessoryViewController* viewController = viewControllers[--i];
-			if([viewController.title isEqualToString:kAddLicenseViewIdentifier])
-				[win removeTitlebarAccessoryViewControllerAtIndex:i];
+			NSArray* viewControllers = win.titlebarAccessoryViewControllers;
+			for(NSUInteger i = viewControllers.count; i != 0; )
+			{
+				NSTitlebarAccessoryViewController* viewController = viewControllers[--i];
+				if([viewController.title isEqualToString:kAddLicenseViewIdentifier])
+					[win removeTitlebarAccessoryViewControllerAtIndex:i];
+			}
 		}
 	}
 }

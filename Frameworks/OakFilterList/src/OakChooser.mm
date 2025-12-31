@@ -118,7 +118,7 @@ NSMutableAttributedString* CreateAttributedStringWithMarkedUpRanges (std::string
 	NSSearchField*      _searchField;
 	NSScrollView*       _scrollView;
 	NSTableView*        _tableView;
-	NSVisualEffectView* _footerView;
+	NSView* _footerView;
 	NSTextField*        _statusTextField;
 	NSTextField*        _itemCountTextField;
 }
@@ -171,9 +171,12 @@ static void* kFirstResponderBinding = &kFirstResponderBinding;
 	titlebarView.translatesAutoresizingMaskIntoConstraints = NO;
 	[titlebarView setFrameSize:titlebarView.fittingSize];
 
-	_accessoryViewController = [[NSTitlebarAccessoryViewController alloc] init];
-	_accessoryViewController.view = titlebarView;
-	[self.window addTitlebarAccessoryViewController:_accessoryViewController];
+	if(@available(macos 10.10, *))
+	{
+		_accessoryViewController = [[NSTitlebarAccessoryViewController alloc] init];
+		_accessoryViewController.view = titlebarView;
+		[self.window addTitlebarAccessoryViewController:_accessoryViewController];
+	}
 }
 
 - (void)updateScrollViewInsets
@@ -282,15 +285,23 @@ static void* kFirstResponderBinding = &kFirstResponderBinding;
 	return _itemCountTextField;
 }
 
-- (NSVisualEffectView*)footerView
+- (NSView*)footerView
 {
 	if(!_footerView)
 	{
-		_footerView = [[NSVisualEffectView alloc] initWithFrame:NSZeroRect];
-		_footerView.blendingMode = NSVisualEffectBlendingModeWithinWindow;
-		_footerView.material     = NSVisualEffectMaterialTitlebar;
-		if(@available(macos 10.14, *))
-			_footerView.material = NSVisualEffectMaterialHeaderView;
+		if(@available(macos 10.10, *))
+		{
+			NSVisualEffectView* effectView = [[NSVisualEffectView alloc] initWithFrame:NSZeroRect];
+			effectView.blendingMode = NSVisualEffectBlendingModeWithinWindow;
+			effectView.material     = NSVisualEffectMaterialTitlebar;
+			if(@available(macos 10.14, *))
+				effectView.material = NSVisualEffectMaterialHeaderView;
+			_footerView = effectView;
+		}
+		else
+		{
+			_footerView = [[NSView alloc] initWithFrame:NSZeroRect];
+		}
 
 		NSView* contentView = self.window.contentView;
 		contentView.wantsLayer = YES;

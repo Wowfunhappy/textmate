@@ -24,8 +24,10 @@ static NSTextField* OakCreateTextField (NSString* label)
 	[[res cell] setLineBreakMode:NSLineBreakByTruncatingMiddle];
 
 	// This is to match the other controls in the status bar
-	if(@available(macos 10.14, *))
+	if(@available(macos 10.10, *))
 		res.textColor = NSColor.secondaryLabelColor;
+	else
+		res.textColor = [NSColor colorWithCalibratedWhite:0.0 alpha:0.5];
 
 	return res;
 }
@@ -35,14 +37,16 @@ static NSPopUpButton* OakCreateStatusBarPopUpButton (NSString* initialItemTitle 
 	NSPopUpButton* res = OakCreatePopUpButton(NO, initialItemTitle);
 	res.font     = OakStatusBarFont();
 	res.bordered = NO;
-	res.accessibilityLabel = accessibilityLabel;
+	if(@available(macos 10.10, *))
+		res.accessibilityLabel = accessibilityLabel;
 	return res;
 }
 
 static NSButton* OakCreateImageToggleButton (NSImage* image, NSString* accessibilityLabel)
 {
 	NSButton* res = [NSButton new];
-	res.accessibilityLabel = accessibilityLabel;
+	if(@available(macos 10.10, *))
+		res.accessibilityLabel = accessibilityLabel;
 	[res setButtonType:NSButtonTypeToggle];
 	[res setBordered:NO];
 	[res setImage:image];
@@ -68,15 +72,17 @@ static NSButton* OakCreateImageToggleButton (NSImage* image, NSString* accessibi
 	if(self = [super initWithFrame:aRect])
 	{
 		NSImage* recordMacroImage = [NSImage imageWithSize:NSMakeSize(16, 16) flipped:NO drawingHandler:^BOOL(NSRect dstRect){
-			[NSColor.systemRedColor set];
+			NSColor* redColor;
+			if(@available(macos 10.10, *))
+				redColor = NSColor.systemRedColor;
+			else
+				redColor = [NSColor redColor];
+			[redColor set];
 			[[NSBezierPath bezierPathWithOvalInRect:NSInsetRect(dstRect, 2, 2)] fill];
 			return YES;
 		}];
 
-		self.wantsLayer   = YES;
-		self.material     = NSVisualEffectMaterialTitlebar;
-		self.blendingMode = NSVisualEffectBlendingModeWithinWindow;
-		self.state        = NSVisualEffectStateFollowsWindowActiveState;
+		self.style = OakBackgroundFillViewStyleStatusBar;
 
 		self.selectionField               = OakCreateTextField(@"1:1");
 		self.grammarPopUp                 = OakCreateStatusBarPopUpButton(@"", @"Grammar");
@@ -185,7 +191,7 @@ static NSButton* OakCreateImageToggleButton (NSImage* image, NSString* accessibi
 
 - (NSSize)intrinsicContentSize
 {
-	return NSMakeSize(NSViewNoIntrinsicMetric, 24);
+	return NSMakeSize(-1, 24); // -1 is NSViewNoIntrinsicMetric
 }
 
 - (void)updateMacroRecordingAnimation:(NSTimer*)aTimer

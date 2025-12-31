@@ -1,3 +1,12 @@
+#if !defined(MAC_OS_X_VERSION_10_10) || (MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_10)
+@interface NSColor (Yosemite)
++ (NSColor*)labelColor;
++ (NSColor*)secondaryLabelColor;
++ (NSColor*)tertiaryLabelColor;
++ (NSColor*)quaternaryLabelColor;
+@end
+#endif
+
 #if !defined(MAC_OS_X_VERSION_10_14) || (MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_14)
 #define NSVisualEffectMaterialHeaderView (NSVisualEffectMaterial)10
 #define NSVisualEffectMaterialToolTip (NSVisualEffectMaterial)17

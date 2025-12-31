@@ -1,4 +1,5 @@
 #!/System/Library/Frameworks/Ruby.framework/Versions/Current/usr/bin/ruby
+# encoding: UTF-8
 # == Synopsis
 #
 # gen_build: create build.ninja based on target files
@@ -468,7 +469,7 @@ SHELL
     variables = @context ? @variables.merge(@context.to_h) : @variables
 
     width = variables.map { |key, value| key.length }.max { |lhs, rhs| lhs <=> rhs }
-    res   = variables.map { |key, value| format("%-#{width}s = %s\n", key, value) }.join
+    res   = variables.map { |key, value| format("%-#{width}s = %s\n", key, value) }.join.force_encoding('UTF-8')
     res << "\n" unless variables.empty?
 
     @rules.map do |name, values|
@@ -476,7 +477,7 @@ SHELL
       res << "rule #{name}\n#{flags}\n\n"
     end
 
-    esc = lambda { |x| Array(x).map { |file| file.gsub(/[ :$]/, '$\&') }.join(' ') }
+    esc = lambda { |x| Array(x).map { |file| file.to_s.force_encoding('UTF-8').gsub(/[ :$]/, '$\&') }.join(' ') }
     @build.each do |rule, src, dst, args, deps, outs, order_only|
       res << "build #{esc.call(dst)}"
       res << " | #{esc.call(outs)}" unless outs.to_a.empty?
@@ -527,7 +528,7 @@ class CleanupTargets
   def targets(ninja_file, builddir)
     return nil if ninja_file == '/dev/stdout' || !File.exists?(ninja_file)
 
-    targets = %x{ ${TM_NINJA:-ninja} -C #{File.dirname(ninja_file).shellescape} -f #{ninja_file.shellescape} -t targets all }
+    targets = %x{ ${TM_NINJA:-ninja} -C #{File.dirname(ninja_file).shellescape} -f #{ninja_file.shellescape} -t targets all }.force_encoding('UTF-8')
     return nil if $? != 0
 
     res = Set.new

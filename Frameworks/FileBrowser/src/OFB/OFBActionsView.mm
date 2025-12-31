@@ -18,10 +18,7 @@ static NSButton* OakCreateImageButton (NSImage* image)
 {
 	if(self = [super initWithFrame:aRect])
 	{
-		self.wantsLayer   = YES;
-		self.material     = NSVisualEffectMaterialTitlebar;
-		self.blendingMode = NSVisualEffectBlendingModeWithinWindow;
-		self.state        = NSVisualEffectStateFollowsWindowActiveState;
+		self.style = OakBackgroundFillViewStyleStatusBar;
 
 		self.createButton       = OakCreateImageButton([NSImage imageNamed:NSImageNameAddTemplate]);
 		self.actionsPopUpButton = OakCreateActionPopUpButton();
@@ -70,6 +67,6 @@ static NSButton* OakCreateImageButton (NSImage* image)
 
 - (NSSize)intrinsicContentSize
 {
-	return NSMakeSize(NSViewNoIntrinsicMetric, 24);
+	return NSMakeSize(-1, 24); // -1 is NSViewNoIntrinsicMetric
 }
 @end

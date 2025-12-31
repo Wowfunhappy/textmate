@@ -105,9 +105,16 @@ static size_t line_count (std::string const& text)
 	{
 		if(index == [clippedLines count] - 1 && [clippedLines count] < [lines count])
 		{
-			NSString* moreLinesText           = [NSString stringWithFormat:@"%lu more line%s", [lines count] - [clippedLines count], ([lines count] - [clippedLines count]) != 1 ? "s" : ""];
+			NSString* moreLinesText = [NSString stringWithFormat:@"%lu more line%s", [lines count] - [clippedLines count], ([lines count] - [clippedLines count]) != 1 ? "s" : ""];
+			NSColor* moreLinesColor;
+			if([self isHighlighted])
+				moreLinesColor = [NSColor alternateSelectedControlTextColor];
+			else if(@available(macos 10.10, *))
+				moreLinesColor = [NSColor secondaryLabelColor];
+			else
+				moreLinesColor = [NSColor colorWithCalibratedWhite:0.0 alpha:0.5];
 			NSDictionary* moreLinesAttributes = @{
-				NSForegroundColorAttributeName: ([self isHighlighted] ? [NSColor alternateSelectedControlTextColor] : [NSColor secondaryLabelColor]),
+				NSForegroundColorAttributeName: moreLinesColor,
 				NSFontAttributeName:            [NSFont controlContentFontOfSize:[NSFont systemFontSizeForControlSize:NSControlSizeSmall]],
 			};
 			NSAttributedString* moreLines     = [[NSAttributedString alloc] initWithString:moreLinesText attributes:moreLinesAttributes];

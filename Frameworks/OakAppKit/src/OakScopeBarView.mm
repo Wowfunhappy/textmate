@@ -4,7 +4,8 @@
 static NSButton* OakCreateScopeButton (NSString* label, NSUInteger tag, SEL action, id target)
 {
 	NSButton* res = [NSButton new];
-	res.accessibilityRole               = NSAccessibilityRadioButtonRole;
+	if(@available(macos 10.10, *))
+		res.accessibilityRole           = NSAccessibilityRadioButtonRole;
 	res.bezelStyle                      = NSBezelStyleRecessed;
 	res.buttonType                      = NSButtonTypePushOnPushOff;
 	res.title                           = label;
@@ -26,7 +27,8 @@ static NSButton* OakCreateScopeButton (NSString* label, NSUInteger tag, SEL acti
 {
 	if(self = [super initWithFrame:aRect])
 	{
-		self.accessibilityRole = NSAccessibilityRadioGroupRole;
+		if(@available(macos 10.10, *))
+			self.accessibilityRole = NSAccessibilityRadioGroupRole;
 	}
 	return self;
 }

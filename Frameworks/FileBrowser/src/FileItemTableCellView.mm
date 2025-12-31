@@ -182,7 +182,10 @@
 		}
 		else
 		{
-			borderColor = [NSColor secondaryLabelColor];
+			if(@available(macos 10.10, *))
+				borderColor = [NSColor secondaryLabelColor];
+			else
+				borderColor = [NSColor colorWithCalibratedWhite:0.0 alpha:0.5];
 			fillColor = [NSColor clearColor];
 		}
 

@@ -28,7 +28,7 @@ static NSString* const kRecordingPlaceholderString = @"…";
 
 - (NSSize)intrinsicContentSize
 {
-	return NSMakeSize(NSViewNoIntrinsicMetric, 22);
+	return NSMakeSize(-1, 22); // -1 is NSViewNoIntrinsicMetric
 }
 
 - (CGFloat)baselineOffsetFromBottom
@@ -209,8 +209,14 @@ static NSString* const kRecordingPlaceholderString = @"…";
 	else	[[NSColor whiteColor] set];
 	NSRectFill(NSIntersectionRect(aRect, NSInsetRect(frame, 1, 1)));
 
+	NSColor* textColor;
+	if(@available(macos 10.10, *))
+		textColor = self.recording ? [NSColor secondaryLabelColor] : [NSColor labelColor];
+	else
+		textColor = self.recording ? [NSColor colorWithCalibratedWhite:0.0 alpha:0.5] : [NSColor blackColor];
+
 	NSDictionary* stringAttributes = @{
-		NSForegroundColorAttributeName: self.recording ? [NSColor secondaryLabelColor] : [NSColor labelColor],
+		NSForegroundColorAttributeName: textColor,
 		NSFontAttributeName:            OakControlFont()
 	};
 

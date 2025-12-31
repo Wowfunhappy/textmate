@@ -1,9 +1,11 @@
+#import <OakAppKit/OakUIConstructionFunctions.h>
+
 @protocol HOStatusBarDelegate
 - (void)goBack:(id)sender;
 - (void)goForward:(id)sender;
 @end
 
-@interface HOStatusBar : NSVisualEffectView
+@interface HOStatusBar : OakBackgroundFillView
 @property (nonatomic, weak) id              delegate;
 
 @property (nonatomic) NSString*             statusText;

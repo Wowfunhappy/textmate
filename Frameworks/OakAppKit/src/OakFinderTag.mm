@@ -31,16 +31,33 @@
 
 - (NSColor*)labelColor
 {
-	switch(_label)
+	if(@available(macos 10.10, *))
 	{
-		case 1: return [NSColor systemGrayColor];
-		case 2: return [NSColor systemGreenColor];
-		case 3: return [NSColor systemPurpleColor];
-		case 4: return [NSColor systemBlueColor];
-		case 5: return [NSColor systemYellowColor];
-		case 6: return [NSColor systemRedColor];
-		case 7: return [NSColor systemOrangeColor];
-		default: return nil;
+		switch(_label)
+		{
+			case 1: return [NSColor systemGrayColor];
+			case 2: return [NSColor systemGreenColor];
+			case 3: return [NSColor systemPurpleColor];
+			case 4: return [NSColor systemBlueColor];
+			case 5: return [NSColor systemYellowColor];
+			case 6: return [NSColor systemRedColor];
+			case 7: return [NSColor systemOrangeColor];
+			default: return nil;
+		}
+	}
+	else
+	{
+		switch(_label)
+		{
+			case 1: return [NSColor grayColor];
+			case 2: return [NSColor colorWithCalibratedRed:0.0 green:0.8 blue:0.0 alpha:1.0];
+			case 3: return [NSColor purpleColor];
+			case 4: return [NSColor blueColor];
+			case 5: return [NSColor yellowColor];
+			case 6: return [NSColor redColor];
+			case 7: return [NSColor orangeColor];
+			default: return nil;
+		}
 	}
 }
 

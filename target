@@ -1,4 +1,4 @@
-APP_MIN_OS = 10.11
+APP_MIN_OS = 10.9
 
 FLAGS += -c -pipe -fPIC -gdwarf-2
 FLAGS += -m64 -mmacosx-version-min=$APP_MIN_OS
@@ -32,10 +32,12 @@ CODESIGN_FLAGS = --options runtime --timestamp
 
 FLAGS += -I"$libressl_prefix/include"
 FLAGS += -I"$capnp_prefix/include"
+FLAGS += -DLIBICONV_PLUG
 
 PRELUDE = Shared/PCH/prelude.*
 
 LN_FLAGS += -fobjc-link-runtime
+LN_FLAGS += -L/usr/lib
 
 TARGETS  = vendor/*/target
 TARGETS += Frameworks/*/target

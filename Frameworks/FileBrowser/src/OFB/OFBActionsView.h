@@ -1,4 +1,6 @@
-@interface OFBActionsView : NSVisualEffectView
+#import <OakAppKit/OakUIConstructionFunctions.h>
+
+@interface OFBActionsView : OakBackgroundFillView
 @property (nonatomic) NSButton* createButton;
 @property (nonatomic) NSPopUpButton* actionsPopUpButton;
 @property (nonatomic) NSButton* reloadButton;

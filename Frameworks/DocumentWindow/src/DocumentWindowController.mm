@@ -190,11 +190,14 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 		self.window.delegate           = self;
 		self.window.releasedWhenClosed = NO;
 
-		_titlebarViewController = [[NSTitlebarAccessoryViewController alloc] init];
-		self.tabBarView.frameSize = self.tabBarView.intrinsicContentSize;
-		_titlebarViewController.view = self.tabBarView;
-		_titlebarViewController.fullScreenMinHeight = NSHeight(self.tabBarView.frame);
-		[self.window addTitlebarAccessoryViewController:_titlebarViewController];
+		if(@available(macos 10.10, *))
+		{
+			_titlebarViewController = [[NSTitlebarAccessoryViewController alloc] init];
+			self.tabBarView.frameSize = self.tabBarView.intrinsicContentSize;
+			_titlebarViewController.view = self.tabBarView;
+			_titlebarViewController.fullScreenMinHeight = NSHeight(self.tabBarView.frame);
+			[self.window addTitlebarAccessoryViewController:_titlebarViewController];
+		}
 
 		[LicenseManager.sharedInstance decorateWindow:self.window];
 

@@ -1,4 +1,5 @@
 #!/System/Library/Frameworks/Ruby.framework/Versions/Current/usr/bin/ruby
+# encoding: UTF-8
 # == Synopsis
 #
 # Module to assist in building the Contributors page using git commit history.
@@ -111,7 +112,7 @@ def generate_credits(dbm_file, warn=false)
   # git hash, author name, email address, author date, commit summary
   cmd = 'git log -z --date=iso --pretty=format:"%H%n%an%n%ae%n%ad%n%s%n%B"'
 
-  `#{cmd}`.split(/\x00/).each {|commit|
+  `#{cmd}`.force_encoding('UTF-8').split(/\x00/).each {|commit|
     fields = commit.split(/\n/, 6)
 
     # omit commits from Allan; he gets enough credit already ;)
