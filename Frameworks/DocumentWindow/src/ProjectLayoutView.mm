@@ -65,12 +65,14 @@ NSString* const kUserDefaultsHTMLOutputSizeKey   = @"htmlOutputSize";
 - (void)updateKeyViewLoop
 {
 	OakSetupKeyViewLoop(@[
+		_tabBarView      ?: [NSNull null],
 		_documentView    ?: [NSNull null],
 		_htmlOutputView  ?: [NSNull null],
 		_fileBrowserView ?: [NSNull null],
 	], NO);
 }
 
+- (void)setTabBarView:(OakTabBarView*)aTabBarView    { _tabBarView = (OakTabBarView*)[self replaceView:_tabBarView withView:aTabBarView]; [self updateKeyViewLoop]; }
 - (void)setDocumentView:(NSView*)aDocumentView       { _documentView = [self replaceView:_documentView withView:aDocumentView]; [self updateKeyViewLoop]; }
 
 - (void)setHtmlOutputView:(NSView*)aHtmlOutputView
@@ -117,6 +119,7 @@ NSString* const kUserDefaultsHTMLOutputSizeKey   = @"htmlOutputSize";
 	[super updateConstraints];
 
 	NSDictionary* views = @{
+		@"tabBarView":         _tabBarView         ?: [NSNull null],
 		@"documentView":       _documentView,
 		@"fileBrowserView":    _fileBrowserView    ?: [NSNull null],
 		@"fileBrowserDivider": _fileBrowserDivider ?: [NSNull null],
@@ -124,12 +127,25 @@ NSString* const kUserDefaultsHTMLOutputSizeKey   = @"htmlOutputSize";
 		@"htmlOutputDivider":  _htmlOutputDivider  ?: [NSNull null],
 	};
 
+	// =======================
+	// = Anchor Tab Bar View =
+	// =======================
+
+	if(_tabBarView)
+	{
+		CONSTRAINT(@"V:|[tabBarView]", 0);
+		CONSTRAINT(@"H:|[tabBarView]|", 0);
+	}
+
 	// ========================
 	// = Anchor Document View =
 	// ========================
 
 	// top
-	CONSTRAINT(@"V:|[documentView]", 0);
+	if(_tabBarView)
+		CONSTRAINT(@"V:[tabBarView][documentView]", 0);
+	else
+		CONSTRAINT(@"V:|[documentView]", 0);
 
 	// bottom
 	if(_htmlOutputView && !_htmlOutputOnRight)

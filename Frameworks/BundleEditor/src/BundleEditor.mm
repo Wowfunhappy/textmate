@@ -509,8 +509,14 @@ static be::entry_ptr parent_for_column (NSBrowser* aBrowser, NSInteger aColumn, 
 
 		be::entry_ptr entry = parent_for_column(aBrowser, aColumn, bundles)->children()[aRow];
 
+		NSColor* disabledColor;
+		if(@available(macos 10.10, *))
+			disabledColor = [NSColor tertiaryLabelColor];
+		else
+			disabledColor = [NSColor colorWithCalibratedWhite:0.0 alpha:0.25];
+
 		NSDictionary* attrs = @{
-			NSForegroundColorAttributeName: entry->disabled() ? [NSColor tertiaryLabelColor] : [NSColor controlTextColor],
+			NSForegroundColorAttributeName: entry->disabled() ? disabledColor : [NSColor controlTextColor],
 			NSParagraphStyleAttributeName:  paragraphStyle
 		};
 		[cell setAttributedStringValue:[[NSAttributedString alloc] initWithString:[NSString stringWithCxxString:entry->name()] attributes:attrs]];

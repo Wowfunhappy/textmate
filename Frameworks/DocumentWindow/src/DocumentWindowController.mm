@@ -198,15 +198,18 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 			_titlebarViewController.fullScreenMinHeight = NSHeight(self.tabBarView.frame);
 			[self.window addTitlebarAccessoryViewController:_titlebarViewController];
 		}
+		else
+		{
+			self.layoutView.tabBarView = self.tabBarView;
+		}
 
 		[LicenseManager.sharedInstance decorateWindow:self.window];
 
 		OakAddAutoLayoutViewsToSuperview(@[ self.layoutView ], self.window.contentView);
-		OakSetupKeyViewLoop(@[ self.layoutView ], NO);
-		self.window.initialFirstResponder = self.textView;
-
 		[self.window.contentView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|[view]|" options:0 metrics:nil views:@{ @"view": self.layoutView }]];
 		[self.window.contentView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|[view]|" options:0 metrics:nil views:@{ @"view": self.layoutView }]];
+		OakSetupKeyViewLoop(@[ self.layoutView ], NO);
+		self.window.initialFirstResponder = self.textView;
 
 		_arrayController = [[NSArrayController alloc] init];
 		[_arrayController bind:NSContentBinding toObject:self withKeyPath:@"documents" options:nil];
