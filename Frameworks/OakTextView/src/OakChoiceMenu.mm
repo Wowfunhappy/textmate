@@ -49,18 +49,33 @@ enum action_t { kActionNop, kActionTab, kActionReturn, kActionCancel, kActionMov
 		scrollView.borderType            = NSNoBorder;
 		scrollView.documentView          = _tableView;
 		scrollView.autoresizingMask      = NSViewWidthSizable|NSViewHeightSizable;
-		scrollView.drawsBackground       = NO;
 
-		NSVisualEffectView* effectView = [[NSVisualEffectView alloc] initWithFrame:NSZeroRect];
-		effectView.autoresizingMask = NSViewWidthSizable|NSViewHeightSizable;
-		effectView.material         = NSVisualEffectMaterialMenu;
+		if(@available(macos 10.11, *))
+		{
+			NSVisualEffectView* effectView = [[NSVisualEffectView alloc] initWithFrame:NSZeroRect];
+			effectView.autoresizingMask = NSViewWidthSizable|NSViewHeightSizable;
 
-		if(@available(macos 10.14, *))
-			effectView.blendingMode = NSVisualEffectBlendingModeBehindWindow; // MAC_OS_X_VERSION_10_14
+			effectView.material = NSVisualEffectMaterialMenu; // MAC_OS_X_VERSION_10_11
+			if(@available(macos 10.14, *))
+				effectView.blendingMode = NSVisualEffectBlendingModeBehindWindow; // MAC_OS_X_VERSION_10_14
 
-		[effectView addSubview:scrollView positioned:NSWindowBelow relativeTo:nil];
+			_tableView.backgroundColor = NSColor.clearColor;
+			scrollView.drawsBackground  = NO;
 
-		[self.window setContentView:effectView];
+			[effectView addSubview:scrollView positioned:NSWindowBelow relativeTo:nil];
+
+			[self.window setContentView:effectView];
+		}
+		else
+		{
+			self.window.opaque             = NO;
+			self.window.alphaValue         = 0.97;
+			self.window.backgroundColor    = [NSColor colorWithCalibratedRed:1.00 green:0.96 blue:0.76 alpha:1];
+
+			_tableView.usesAlternatingRowBackgroundColors = YES;
+
+			[self.window setContentView:scrollView];
+		}
 	}
 	return self;
 }

@@ -10,6 +10,20 @@
 NSURL* const kURLLocationComputer  = [[NSURL alloc] initWithString:@"computer:///"];
 NSURL* const kURLLocationFavorites = [[NSURL alloc] initFileURLWithPath:[NSHomeDirectory() stringByAppendingPathComponent:@"Library/Application Support/TextMate/Favorites"] isDirectory:YES];
 
+@implementation NSURL (CompatibilityWrapper)
+- (BOOL)tmHasDirectoryPath
+{
+	if([self respondsToSelector:@selector(hasDirectoryPath)])
+		return self.hasDirectoryPath; // MAC_OS_X_VERSION_10_11
+
+	NSString* urlString = self.absoluteString;
+	NSRange range = [urlString rangeOfCharacterFromSet:[NSCharacterSet characterSetWithCharactersInString:@"?;"]];
+	if(range.location != NSNotFound)
+		urlString = [urlString substringToIndex:range.location];
+	return [urlString hasSuffix:@"/"];
+}
+@end
+
 @interface FileItem ()
 @property (nonatomic, readonly) BOOL alwaysShowFileExtension;
 @property (nonatomic, readwrite) NSImage* image;
@@ -129,7 +143,7 @@ static NSMutableDictionary* SchemeToClass;
 
 - (BOOL)isDirectory
 {
-	return _URL.hasDirectoryPath;
+	return _URL.tmHasDirectoryPath;
 }
 
 - (NSString*)displayName
@@ -195,8 +209,16 @@ static NSMutableDictionary* SchemeToClass;
 
 - (BOOL)isApplication
 {
-	NSNumber* flag;
-	return _URL.isFileURL && [_URL getResourceValue:&flag forKey:NSURLIsApplicationKey error:nil] && [flag boolValue];
+	// NSURLIsApplicationKey requires MAC_OS_X_VERSION_10_11
+
+	LSItemInfoRecord itemInfo;
+	if(_URL.isFileURL && LSCopyItemInfoForURL((__bridge CFURLRef)_URL, kLSRequestBasicFlagsOnly, &itemInfo) == noErr)
+	{
+		OptionBits flags = itemInfo.flags;
+		if(flags & kLSItemInfoIsApplication)
+			return YES;
+	}
+	return NO;
 }
 
 // ===========================================
@@ -231,7 +253,7 @@ static NSMutableDictionary* SchemeToClass;
 		for(FileItem* child in _children)
 		{
 			if(child.URL.isFileURL && _URL.isFileURL)
-				child.URL = [_URL URLByAppendingPathComponent:child.URL.lastPathComponent isDirectory:child.URL.hasDirectoryPath];
+				child.URL = [_URL URLByAppendingPathComponent:child.URL.lastPathComponent isDirectory:child.URL.tmHasDirectoryPath];
 		}
 	}
 
