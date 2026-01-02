@@ -66,7 +66,6 @@ static NSButton* OakCreateImageToggleButton (NSImage* image, NSString* accessibi
 @property (nonatomic) NSTextField*   selectionField;
 @property (nonatomic) NSPopUpButton* grammarPopUp;
 @property (nonatomic) NSPopUpButton* tabSizePopUp;
-@property (nonatomic) NSPopUpButton* bundleItemsPopUp;
 @property (nonatomic) NSPopUpButton* symbolPopUp;
 @property (nonatomic) NSButton*      macroRecordingButton;
 @end
@@ -99,7 +98,6 @@ static NSButton* OakCreateImageToggleButton (NSImage* image, NSString* accessibi
 		self.grammarPopUp                 = OakCreateStatusBarPopUpButton(@"", @"Grammar");
 		self.tabSizePopUp                 = OakCreateStatusBarPopUpButton();
 		self.tabSizePopUp.pullsDown       = YES;
-		self.bundleItemsPopUp             = OakCreateStatusBarPopUpButton(nil, @"Bundle Item");
 		self.symbolPopUp                  = OakCreateStatusBarPopUpButton(@"", @"Symbol");
 		self.macroRecordingButton         = OakCreateImageToggleButton(recordMacroImage, @"Record a macro");
 		self.macroRecordingButton.action  = @selector(toggleMacroRecording:);
@@ -112,27 +110,12 @@ static NSButton* OakCreateImageToggleButton (NSImage* image, NSString* accessibi
 
 		[self setupTabSizeMenu:self];
 
-		// ===========================
-		// = Wrap/Clip Bundles PopUp =
-		// ===========================
-
-		NSMenuItem* item = [[NSMenuItem alloc] initWithTitle:@"" action:NULL keyEquivalent:@""];
-		item.image = [NSImage imageNamed:NSImageNameActionTemplate];
-		[[self.bundleItemsPopUp cell] setUsesItemFromMenu:NO];
-		[[self.bundleItemsPopUp cell] setMenuItem:item];
-
-		NSView* wrappedBundleItemsPopUpButton = [NSView new];
-		OakAddAutoLayoutViewsToSuperview(@[ self.bundleItemsPopUp ], wrappedBundleItemsPopUpButton);
-		[wrappedBundleItemsPopUpButton addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:[popup]|" options:0 metrics:nil views:@{ @"popup": self.bundleItemsPopUp }]];
-		[wrappedBundleItemsPopUpButton addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|[popup]|" options:0 metrics:nil views:@{ @"popup": self.bundleItemsPopUp }]];
-
 		NSTextField* line    = OakCreateTextField(@"Line:");
 
 		NSView* dividerOne   = OakCreateDividerImageView();
 		NSView* dividerTwo   = OakCreateDividerImageView();
 		NSView* dividerThree = OakCreateDividerImageView();
 		NSView* dividerFour  = OakCreateDividerImageView();
-		NSView* dividerFive  = OakCreateDividerImageView();
 
 		NSDictionary* views = @{
 			@"line":         line,
@@ -140,17 +123,15 @@ static NSButton* OakCreateImageToggleButton (NSImage* image, NSString* accessibi
 			@"dividerOne":   dividerOne,
 			@"grammar":      self.grammarPopUp,
 			@"dividerTwo":   dividerTwo,
-			@"items":        wrappedBundleItemsPopUpButton,
-			@"dividerThree": dividerThree,
 			@"tabSize":      self.tabSizePopUp,
-			@"dividerFour":  dividerFour,
+			@"dividerThree": dividerThree,
 			@"symbol":       self.symbolPopUp,
-			@"dividerFive":  dividerFive,
+			@"dividerFour":  dividerFour,
 			@"recording":    self.macroRecordingButton,
 		};
 
 		OakAddAutoLayoutViewsToSuperview([views allValues], self);
-		OakSetupKeyViewLoop(@[ self, _grammarPopUp, _tabSizePopUp, _bundleItemsPopUp, _symbolPopUp, _macroRecordingButton ], NO);
+		OakSetupKeyViewLoop(@[ self, _grammarPopUp, _tabSizePopUp, _symbolPopUp, _macroRecordingButton ], NO);
 
 		[self.selectionField setContentHuggingPriority:NSLayoutPriorityDefaultLow forOrientation:NSLayoutConstraintOrientationHorizontal];
 		[self.selectionField setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow+2 forOrientation:NSLayoutConstraintOrientationHorizontal];
@@ -161,16 +142,15 @@ static NSButton* OakCreateImageToggleButton (NSImage* image, NSString* accessibi
 		[self.symbolPopUp setContentHuggingPriority:NSLayoutPriorityDefaultLow-1 forOrientation:NSLayoutConstraintOrientationHorizontal];
 		[self.symbolPopUp setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow-1 forOrientation:NSLayoutConstraintOrientationHorizontal];
 
-		[self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-10-[line]-[selection(>=50,<=225)]-8-[dividerOne]-(-2)-[grammar(>=125@400,>=50,<=225)]-5-[dividerTwo]-(-2)-[tabSize]-4-[dividerThree]-5-[items(==31)]-4-[dividerFour]-(-2)-[symbol(>=125@450,>=50)]-5-[dividerFive]-6-[recording]-7-|" options:0 metrics:nil views:views]];
-		[self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|[dividerOne(==dividerTwo,==dividerThree,==dividerFour,==dividerFive)]|" options:NSLayoutFormatAlignAllTop metrics:nil views:views]];
+		[self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-10-[line]-[selection(>=50,<=225)]-8-[dividerOne]-(-2)-[grammar(>=125@400,>=50,<=225)]-5-[dividerTwo]-(-2)-[tabSize]-4-[dividerThree]-(-2)-[symbol(>=125@450,>=50)]-5-[dividerFour]-6-[recording]-7-|" options:0 metrics:nil views:views]];
+		[self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|[dividerOne(==dividerTwo,==dividerThree,==dividerFour)]|" options:NSLayoutFormatAlignAllTop metrics:nil views:views]];
 
 		// Baseline align text-controls
 		[self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:[line]-[selection]-(>=1)-[grammar]-(>=1)-[tabSize]-(>=1)-[symbol]" options:NSLayoutFormatAlignAllBaseline metrics:nil views:views]];
 		// Center non-text control
-		[self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:[selection]-(>=1)-[dividerOne]-(>=1)-[items]-(>=1)-[recording]" options:NSLayoutFormatAlignAllCenterY metrics:nil views:views]];
+		[self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:[selection]-(>=1)-[dividerOne]-(>=1)-[recording]" options:NSLayoutFormatAlignAllCenterY metrics:nil views:views]];
 
 		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(grammarPopUpButtonWillPopUp:) name:NSPopUpButtonWillPopUpNotification object:self.grammarPopUp];
-		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(bundleItemsPopUpButtonWillPopUp:) name:NSPopUpButtonWillPopUpNotification object:self.bundleItemsPopUp];
 		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(symbolPopUpButtonWillPopUp:) name:NSPopUpButtonWillPopUpNotification object:self.symbolPopUp];
 	}
 	return self;
@@ -257,23 +237,9 @@ static NSButton* OakCreateImageToggleButton (NSImage* image, NSString* accessibi
 	}
 }
 
-- (void)bundleItemsPopUpButtonWillPopUp:(NSNotification*)aNotification
-{
-	[self.delegate showBundleItemSelector:self.bundleItemsPopUp];
-}
-
 - (void)symbolPopUpButtonWillPopUp:(NSNotification*)aNotification
 {
 	[self.delegate showSymbolSelector:self.symbolPopUp];
-}
-
-// ===========
-// = Actions =
-// ===========
-
-- (void)showBundlesMenu:(id)sender
-{
-	[self.bundleItemsPopUp performClick:self];
 }
 
 // ==============

@@ -30,8 +30,6 @@
 	"@\UF728"  = "deleteToEndOfLine:";
 	"~\UF705"  = "showContextMenu:";
 
-	"~\UF704"  = "showBundlesMenu:";
-
 	"^w"       = "selectWord:";
 	"@L"       = "selectHardLine:";
 	"^~p"      = "selectParagraph:";

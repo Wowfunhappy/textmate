@@ -612,14 +612,6 @@ static NSString* const kFoldingsColumnIdentifier  = @"foldings";
 	[symbolPopUp selectItemAtIndex:(index ? index-1 : 0)];
 }
 
-- (void)showBundlesMenu:(id)sender
-{
-	if(!self.statusBar)
-		return NSBeep();
-
-	[NSApp sendAction:_cmd to:self.statusBar from:self];
-}
-
 - (void)showBundleItemSelector:(NSPopUpButton*)bundleItemsPopUp
 {
 	NSMenu* bundleItemsMenu = bundleItemsPopUp.menu;
