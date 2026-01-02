@@ -242,7 +242,6 @@ BOOL HasDocumentWindow (NSArray* windows)
 					}
 				},
 				{ @"Show File Browser",      @selector(toggleFileBrowser:),    @"d", .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagOption|NSEventModifierFlagControl },
-				{ @"Show HTML Output",       @selector(toggleHTMLOutput:),     @"h", .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagOption|NSEventModifierFlagControl },
 				{ @"Show Line Numbers",      @selector(toggleLineNumbers:),    @"l", .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagOption },
 				{ /* -------- */ },
 				{ @"Show Invisibles",        @selector(toggleShowInvisibles:), @"i", .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagOption },
@@ -294,10 +293,7 @@ BOOL HasDocumentWindow (NSArray* windows)
 				{ /* -------- */ },
 				{ @"Toggle Scroll Past End", @selector(toggleScrollPastEnd:)          },
 				{ /* -------- */ },
-				{ @"View Source",            @selector(viewSource:),           @"u", .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagOption },
 				{ @"Enter Full Screen",      @selector(toggleFullScreen:),     @"f", .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagControl },
-				{ /* -------- */ },
-				{ @"Customize Touch Bar…",   @selector(toggleTouchBarCustomizationPalette:) },
 			}
 		},
 		{ @"Navigate",
