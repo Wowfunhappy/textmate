@@ -77,16 +77,10 @@ static NSAttributedString* PathComponentString (std::string const& path, std::st
 		components.front() = path::display_name("/");
 	components.back() = "";
 
-	NSColor* secondaryColor;
-	if(@available(macos 10.10, *))
-		secondaryColor = [NSColor secondaryLabelColor];
-	else
-		secondaryColor = [NSColor colorWithCalibratedWhite:0.0 alpha:0.5];
-
 	string_builder_t builder(NSLineBreakByTruncatingMiddle);
 	builder.push_style(@{
 		NSFontAttributeName:            font,
-		NSForegroundColorAttributeName: secondaryColor
+		NSForegroundColorAttributeName: [NSColor darkGrayColor]
 	});
 	builder.append(to_ns(text::join(std::vector<std::string>(components.begin(), components.end()), " ‣ ")));
 	builder.append(to_ns((path::is_absolute(path) ? path::display_name(path) : path)), NSBoldFontMask);
@@ -115,22 +109,16 @@ static NSAttributedString* AttributedStringForMatch (std::string const& text, si
 {
 	NSFontTraitMask matchFontTraits = NSBoldFontMask;
 	NSDictionary* matchAttributes = @{
-		NSForegroundColorAttributeName: [NSColor textColor],
+		NSForegroundColorAttributeName: [NSColor blackColor],
 		NSBackgroundColorAttributeName: [NSColor tmMatchedTextBackgroundColor],
 		NSUnderlineStyleAttributeName:  @(NSUnderlineStyleSingle),
 		NSUnderlineColorAttributeName:  [NSColor tmMatchedTextUnderlineColor],
 	};
 
-	NSColor* secondaryColor;
-	if(@available(macos 10.10, *))
-		secondaryColor = [NSColor secondaryLabelColor];
-	else
-		secondaryColor = [NSColor colorWithCalibratedWhite:0.0 alpha:0.5];
-
 	string_builder_t builder(NSLineBreakByTruncatingTail);
 	builder.push_style(@{
 		NSFontAttributeName:            font,
-		NSForegroundColorAttributeName: secondaryColor
+		NSForegroundColorAttributeName: [NSColor darkGrayColor]
 	});
 
 	// Ensure monospaced digits for the line number prefix
@@ -146,7 +134,7 @@ static NSAttributedString* AttributedStringForMatch (std::string const& text, si
 		size_t eol = text.find(newlines, it);
 		eol = eol != std::string::npos ? eol : last;
 
-		if(std::clamp(from, it, eol) == from)
+		if(oak::cap(it, from, eol) == from)
 		{
 			append(builder, text, it, from);
 			it = from;
@@ -156,7 +144,7 @@ static NSAttributedString* AttributedStringForMatch (std::string const& text, si
 			inMatch = true;
 		}
 
-		if(inMatch && std::clamp(to, it, eol) == to)
+		if(inMatch && oak::cap(it, to, eol) == to)
 		{
 			append(builder, text, it, to);
 			it = to;
@@ -343,16 +331,10 @@ static NSAttributedString* AttributedStringForMatch (std::string const& text, si
 
 	if(!utf8::is_valid(prefix.begin(), prefix.end()) || !utf8::is_valid(middle.begin(), middle.end()) || !utf8::is_valid(suffix.begin(), suffix.end()))
 	{
-		NSColor* secondaryColor;
-		if(@available(macos 10.10, *))
-			secondaryColor = [NSColor secondaryLabelColor];
-		else
-			secondaryColor = [NSColor colorWithCalibratedWhite:0.0 alpha:0.5];
-
 		string_builder_t builder(NSLineBreakByTruncatingTail);
 		builder.append(to_ns(text::format("%zu-%zu: Range is not valid UTF-8, please contact: https://macromates.com/support", m.first, m.last)), @{
 			NSFontAttributeName:            font,
-			NSForegroundColorAttributeName: secondaryColor
+			NSForegroundColorAttributeName: [NSColor darkGrayColor]
 		});
 		return builder.attributed_string();
 	}

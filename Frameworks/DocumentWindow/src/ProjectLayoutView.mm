@@ -46,7 +46,8 @@ NSString* const kUserDefaultsHTMLOutputSizeKey   = @"htmlOutputSize";
 
 - (void)userDefaultsDidChange:(NSNotification*)aNotification
 {
-	self.htmlOutputOnRight = [[[NSUserDefaults standardUserDefaults] stringForKey:kUserDefaultsHTMLOutputPlacementKey] isEqualToString:@"right"];
+	self.htmlOutputOnRight  = [[[NSUserDefaults standardUserDefaults] stringForKey:kUserDefaultsHTMLOutputPlacementKey] isEqualToString:@"right"];
+	self.tabsAboveDocument  = [[NSUserDefaults standardUserDefaults] boolForKey:kUserDefaultsTabsAboveDocumentKey];
 }
 
 - (NSView*)replaceView:(NSView*)oldView withView:(NSView*)newView
@@ -108,18 +109,29 @@ NSString* const kUserDefaultsHTMLOutputSizeKey   = @"htmlOutputSize";
 	}
 }
 
+- (void)setTabsAboveDocument:(BOOL)flag
+{
+	if(_tabsAboveDocument != flag)
+	{
+		_tabsAboveDocument = flag;
+		[self setNeedsUpdateConstraints:YES];
+	}
+}
+
 #ifndef CONSTRAINT
 #define CONSTRAINT(str, align) [_myConstraints addObjectsFromArray:[NSLayoutConstraint constraintsWithVisualFormat:str options:align metrics:nil views:views]]
 #endif
 
 - (void)updateConstraints
 {
+	_tabBarView.neverHideLeftBorder = _tabsAboveDocument && _fileBrowserView && _fileBrowserOnRight == NO;
+
 	[self removeConstraints:_myConstraints];
 	[_myConstraints removeAllObjects];
 	[super updateConstraints];
 
 	NSDictionary* views = @{
-		@"tabBarView":         _tabBarView         ?: [NSNull null],
+		@"tabBarView":         _tabBarView,
 		@"documentView":       _documentView,
 		@"fileBrowserView":    _fileBrowserView    ?: [NSNull null],
 		@"fileBrowserDivider": _fileBrowserDivider ?: [NSNull null],
@@ -131,21 +143,23 @@ NSString* const kUserDefaultsHTMLOutputSizeKey   = @"htmlOutputSize";
 	// = Anchor Tab Bar View =
 	// =======================
 
-	if(_tabBarView)
-	{
-		CONSTRAINT(@"V:|[tabBarView]", 0);
+	// top
+	CONSTRAINT(@"V:|[tabBarView]", 0);
+
+	// left + right
+	if(_tabsAboveDocument && _fileBrowserView && _fileBrowserOnRight)
+		CONSTRAINT(@"H:|[tabBarView]-(-1)-[fileBrowserDivider]", 0);
+	else if(_tabsAboveDocument && _fileBrowserView)
+		CONSTRAINT(@"H:[fileBrowserDivider]-(-1)-[tabBarView]|", 0);
+	else
 		CONSTRAINT(@"H:|[tabBarView]|", 0);
-	}
 
 	// ========================
 	// = Anchor Document View =
 	// ========================
 
 	// top
-	if(_tabBarView)
-		CONSTRAINT(@"V:[tabBarView][documentView]", 0);
-	else
-		CONSTRAINT(@"V:|[documentView]", 0);
+	CONSTRAINT(@"V:[tabBarView][documentView]", 0);
 
 	// bottom
 	if(_htmlOutputView && !_htmlOutputOnRight)
@@ -179,16 +193,11 @@ NSString* const kUserDefaultsHTMLOutputSizeKey   = @"htmlOutputSize";
 		[_myConstraints addObject:self.fileBrowserWidthConstraint];
 
 		// top
-		if(_tabBarView)
-		{
-			CONSTRAINT(@"V:[tabBarView][fileBrowserDivider]", 0);
-			CONSTRAINT(@"V:[tabBarView][fileBrowserView]", 0);
-		}
-		else
-		{
-			CONSTRAINT(@"V:|[fileBrowserDivider]", 0);
+		CONSTRAINT(@"V:|[tabBarView][fileBrowserDivider]", 0);
+		if(_tabsAboveDocument)
 			CONSTRAINT(@"V:|[fileBrowserView]", 0);
-		}
+		else
+			CONSTRAINT(@"V:|[tabBarView][fileBrowserView]", 0);
 
 		// bottom
 		if(_htmlOutputView && !_htmlOutputOnRight)
@@ -231,8 +240,8 @@ NSString* const kUserDefaultsHTMLOutputSizeKey   = @"htmlOutputSize";
 		if(_htmlOutputOnRight)
 		{
 			// top + bottom
-			CONSTRAINT(@"V:|[htmlOutputView]|", 0);
-			CONSTRAINT(@"V:|[htmlOutputDivider]|", 0);
+			CONSTRAINT(@"V:[tabBarView][htmlOutputView]|", 0);
+			CONSTRAINT(@"V:[tabBarView][htmlOutputDivider]|", 0);
 
 			// left + right
 			if(_fileBrowserView && _fileBrowserOnRight)
@@ -337,8 +346,8 @@ NSString* const kUserDefaultsHTMLOutputSizeKey   = @"htmlOutputSize";
 				break;
 
 			NSPoint mouseCurrentPos = [self convertPoint:[anEvent locationInWindow] fromView:nil];
-			if(!didDrag && hypot(mouseDownPos.x - mouseCurrentPos.x, mouseDownPos.y - mouseCurrentPos.y) < 2.5)
-				continue;
+			if(!didDrag && SQ(fabs(mouseDownPos.x - mouseCurrentPos.x)) + SQ(fabs(mouseDownPos.y - mouseCurrentPos.y)) < SQ(1))
+				continue; // we didn't even drag a pixel
 
 			if(view == _htmlOutputView)
 			{
@@ -394,9 +403,7 @@ NSString* const kUserDefaultsHTMLOutputSizeKey   = @"htmlOutputSize";
 	NSView* view = (NSView*)[[self window] firstResponder];
 	if([view isKindOfClass:[NSView class]] && [view isDescendantOf:_htmlOutputView])
 		[NSApp sendAction:@selector(performCloseSplit:) to:nil from:_htmlOutputView];
-	else if([self.window.delegate respondsToSelector:@selector(performClose:)])
-		[self.window.delegate performSelector:@selector(performClose:) withObject:sender];
-	else
-		NSBeep();
+	else if(_tabBarView)
+		[_tabBarView tryToPerform:_cmd with:sender];
 }
 @end

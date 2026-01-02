@@ -47,16 +47,15 @@ static FFResultNode* PreviousNode (FFResultNode* node)
 @implementation OakSearchResultsCheckboxView
 - (id)initWithFrame:(NSRect)aFrame
 {
-	if((self = [super initWithFrame:aFrame]))
+	NSButton* button = OakCreateCheckBox(nil);
+	[[button cell] setControlSize:NSControlSizeSmall];
+	[button sizeToFit];
+	[button setAutoresizingMask:NSViewWidthSizable|NSViewHeightSizable];
+
+	if((self = [super initWithFrame:button.frame]))
 	{
-		_button = OakCreateCheckBox(nil);
-		_button.controlSize = NSControlSizeSmall;
-
-		_button.translatesAutoresizingMaskIntoConstraints = NO;
+		_button = button;
 		[self addSubview:_button];
-
-		[self addConstraint:[NSLayoutConstraint constraintWithItem:_button attribute:NSLayoutAttributeCenterX relatedBy:NSLayoutRelationEqual toItem:self attribute:NSLayoutAttributeCenterX multiplier:1 constant:0]];
-		[self addConstraint:[NSLayoutConstraint constraintWithItem:_button attribute:NSLayoutAttributeCenterY relatedBy:NSLayoutRelationEqual toItem:self attribute:NSLayoutAttributeCenterY multiplier:1 constant:0]];
 
 		[_button bind:NSEnabledBinding toObject:self withKeyPath:@"objectValue.readOnly" options:@{ NSValueTransformerNameBindingOption: NSNegateBooleanTransformerName }];
 		[_button bind:NSValueBinding toObject:self withKeyPath:@"objectValue.excluded" options:@{ NSValueTransformerNameBindingOption: NSNegateBooleanTransformerName }];
@@ -185,22 +184,15 @@ static FFResultNode* PreviousNode (FFResultNode* node)
 		NSButton* countOfLeafs = [NSButton new];
 		[[countOfLeafs cell] setHighlightsBy:NSNoCellMask];
 		countOfLeafs.alignment  = NSTextAlignmentCenter;
-		countOfLeafs.bezelStyle = NSBezelStyleInline;
+		countOfLeafs.bezelStyle = NSInlineBezelStyle;
 		countOfLeafs.font       = [NSFont labelFontOfSize:0];
 		countOfLeafs.identifier = @"countOfLeafs";
 
-		NSImage* removeTemplateImage = [NSImage imageWithSize:NSMakeSize(8, 8) flipped:NO drawingHandler:^BOOL(NSRect dstRect){
-			[[NSColor blackColor] set];
-			NSRectFill(NSInsetRect(dstRect, 0, floor(NSHeight(dstRect)/2)-1));
-			return YES;
-		}];
-		[removeTemplateImage setTemplate:YES];
-
 		NSButton* remove = [NSButton new];
-		remove.controlSize = NSControlSizeSmall;
-		remove.bezelStyle  = NSBezelStyleRoundRect;
-		remove.buttonType  = NSButtonTypeMomentaryPushIn;
-		remove.image       = removeTemplateImage;
+		[[remove cell] setControlSize:NSControlSizeSmall];
+		remove.bezelStyle = NSRoundRectBezelStyle;
+		remove.buttonType = NSMomentaryPushInButton;
+		remove.image      = [NSImage imageNamed:NSImageNameRemoveTemplate];
 
 		NSDictionary* views = @{ @"icon": imageView, @"text": textField, @"count": countOfLeafs, @"remove": remove };
 		OakAddAutoLayoutViewsToSuperview([views allValues], self);
@@ -245,38 +237,34 @@ static FFResultNode* PreviousNode (FFResultNode* node)
 			return;
 
 		NSRect rect = NSUnionRect(self.imageView.bounds, NSMakeRect(0, 0, 16, 16));
-		NSImage* image = [NSImage imageWithSize:rect.size flipped:NO drawingHandler:^BOOL(NSRect dstRect){
-			NSColor* color;
-			if(@available(macos 10.10, *))
-				color = [NSColor secondaryLabelColor];
-			else
-				color = [NSColor colorWithCalibratedWhite:0.0 alpha:0.5];
+		NSColor* color = [NSColor grayColor];
 
-			CGFloat ptrn[] = { 2, 1 };
-			NSBezierPath* path = [NSBezierPath bezierPathWithRoundedRect:NSIntegralRect(NSInsetRect(dstRect, 1, 1)) xRadius:2 yRadius:2];
-			[path setLineDash:ptrn count:sizeofA(ptrn) phase:0];
-			[path setLineWidth:1];
+		NSImage* image = [[NSImage alloc] initWithSize:rect.size];
+		[image lockFocus];
 
-			[color set];
-			[path stroke];
+		CGFloat ptrn[] = { 2, 1 };
+		NSBezierPath* path = [NSBezierPath bezierPathWithRoundedRect:NSIntegralRect(NSInsetRect(rect, 1, 1)) xRadius:2 yRadius:2];
+		[path setLineDash:ptrn count:sizeofA(ptrn) phase:0];
+		[path setLineWidth:1];
 
-			NSMutableParagraphStyle* pStyle = [NSMutableParagraphStyle new];
-			[pStyle setAlignment:NSTextAlignmentCenter];
-			NSDictionary* attributes = @{
-				NSFontAttributeName:            [NSFont boldSystemFontOfSize:0],
-				NSForegroundColorAttributeName: color,
-				NSParagraphStyleAttributeName:  pStyle,
-			};
+		[color set];
+		[path stroke];
 
-			NSAttributedString* str = [[NSAttributedString alloc] initWithString:[NSString stringWithFormat:@"%lu", (index + 1) % 10] attributes:attributes];
-			NSSize size = [str size];
-			dstRect.origin.y = 0.5 * (NSHeight(dstRect) - size.height);
-			dstRect.size.height = size.height;
-			[str drawInRect:NSIntegralRect(dstRect)];
+		NSMutableParagraphStyle* pStyle = [NSMutableParagraphStyle new];
+		[pStyle setAlignment:NSTextAlignmentCenter];
+		NSDictionary* attributes = @{
+			NSFontAttributeName:            [NSFont boldSystemFontOfSize:0],
+			NSForegroundColorAttributeName: color,
+			NSParagraphStyleAttributeName:  pStyle,
+		};
 
-			return YES;
-		}];
+		NSAttributedString* str = [[NSAttributedString alloc] initWithString:[NSString stringWithFormat:@"%lu", (index + 1) % 10] attributes:attributes];
+		NSSize size = [str size];
+		rect.origin.y = 0.5 * (NSHeight(rect) - size.height);
+		rect.size.height = size.height;
+		[str drawInRect:NSIntegralRect(rect)];
 
+		[image unlockFocus];
 		[self.imageView setImage:image];
 	}
 	else
@@ -319,8 +307,7 @@ static FFResultNode* PreviousNode (FFResultNode* node)
 		_bottomDivider = OakCreateHorizontalLine(OakBackgroundFillViewStyleDivider);
 
 		_outlineView = [[NSOutlineView alloc] initWithFrame:NSZeroRect];
-		if(@available(macos 10.10, *))
-			_outlineView.accessibilityLabel             = @"Results";
+		OakSetAccessibilityLabel(_outlineView, @"Results");
 		_outlineView.focusRingType                      = NSFocusRingTypeNone;
 		_outlineView.allowsMultipleSelection            = YES;
 		_outlineView.autoresizesOutlineColumn           = NO;

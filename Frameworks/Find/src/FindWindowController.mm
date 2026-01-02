@@ -2,6 +2,7 @@
 #import "FFResultsViewController.h"
 #import "FFFolderMenu.h"
 #import "CommonAncestor.h"
+#import "Strings.h"
 #import <OakAppKit/OakAppKit.h>
 #import <OakAppKit/NSAlert Additions.h>
 #import <OakAppKit/NSMenuItem Additions.h>
@@ -22,15 +23,14 @@ NSString* const kUserDefaultsFolderOptionsKey     = @"Folder Search Options";
 NSString* const kUserDefaultsFindResultsHeightKey = @"findResultsHeight";
 NSString* const kUserDefaultsDefaultFindGlobsKey  = @"defaultFindInFolderGlobs";
 
-static NSButton* OakCreateClickableStatusBar ()
+NSButton* OakCreateClickableStatusBar ()
 {
 	NSButton* res = [[NSButton alloc] initWithFrame:NSZeroRect];
 	[res.cell setLineBreakMode:NSLineBreakByTruncatingTail];
-	res.controlSize = NSControlSizeSmall;
-	res.alignment   = NSTextAlignmentLeft;
-	res.bordered    = NO;
-	res.buttonType  = NSButtonTypeToggle;
-	res.title       = @" "; // Ensure initial (fitting) size can fit a line of text
+	res.alignment  = NSTextAlignmentLeft;
+	res.bordered   = NO;
+	res.buttonType = NSToggleButton;
+	res.title      = @"";
 
 	[res setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow forOrientation:NSLayoutConstraintOrientationHorizontal];
 	[res setContentHuggingPriority:NSLayoutPriorityRequired forOrientation:NSLayoutConstraintOrientationVertical];
@@ -52,19 +52,18 @@ static NSButton* OakCreateClickableStatusBar ()
 	NSTextFieldCell* cell = [self.cell copy];
 	cell.stringValue = aString;
 
-	self.myIntrinsicContentSize = NSMakeSize(-1, MAX(22, MIN([cell cellSizeForBounds:NSMakeRect(0, 0, NSWidth([self bounds]), CGFLOAT_MAX)].height, 225))); // -1 is NSViewNoIntrinsicMetric
+	self.myIntrinsicContentSize = NSMakeSize(NSViewNoInstrinsicMetric, MAX(22, MIN([cell cellSizeForBounds:NSMakeRect(0, 0, NSWidth([self bounds]), CGFLOAT_MAX)].height, 225)));
 	[self invalidateIntrinsicContentSize];
 }
 @end
 
-static OakAutoSizingTextField* OakCreateTextField (id <NSTextFieldDelegate> delegate, NSView* labelView, NSString* grammarName)
+static OakAutoSizingTextField* OakCreateTextField (id <NSTextFieldDelegate> delegate, NSObject* accessibilityLabel, NSString* grammarName)
 {
 	OakAutoSizingTextField* res = [[OakAutoSizingTextField alloc] initWithFrame:NSZeroRect];
 	res.font = OakControlFont();
 	res.formatter = [[OakSyntaxFormatter alloc] initWithGrammarName:grammarName];
 	[[res cell] setWraps:YES];
-	if(@available(macos 10.10, *))
-		res.accessibilityTitleUIElement = labelView;
+	OakSetAccessibilityLabel(res, accessibilityLabel);
 	res.delegate = delegate;
 	return res;
 }
@@ -72,12 +71,11 @@ static OakAutoSizingTextField* OakCreateTextField (id <NSTextFieldDelegate> dele
 static NSButton* OakCreateHistoryButton (NSString* toolTip)
 {
 	NSButton* res = [[NSButton alloc] initWithFrame:NSZeroRect];
-	res.bezelStyle = NSBezelStyleRoundedDisclosure;
+	res.bezelStyle = NSRoundedDisclosureBezelStyle;
 	res.buttonType = NSMomentaryLightButton;
 	res.title      = @"";
 	res.toolTip    = toolTip;
-	if(@available(macos 10.10, *))
-		res.accessibilityLabel = toolTip;
+	OakSetAccessibilityLabel(res, toolTip);
 	[res setContentCompressionResistancePriority:NSLayoutPriorityRequired forOrientation:NSLayoutConstraintOrientationHorizontal];
 	return res;
 }
@@ -85,7 +83,7 @@ static NSButton* OakCreateHistoryButton (NSString* toolTip)
 static NSProgressIndicator* OakCreateProgressIndicator ()
 {
 	NSProgressIndicator* res = [[NSProgressIndicator alloc] initWithFrame:NSZeroRect];
-	res.style                = NSProgressIndicatorStyleSpinning;
+	res.style                = NSProgressIndicatorSpinningStyle;
 	res.controlSize          = NSControlSizeSmall;
 	res.displayedWhenStopped = NO;
 	return res;
@@ -94,7 +92,7 @@ static NSProgressIndicator* OakCreateProgressIndicator ()
 static NSButton* OakCreateStopSearchButton ()
 {
 	NSButton* res = [[NSButton alloc] initWithFrame:NSZeroRect];
-	res.buttonType    = NSButtonTypeMomentaryChange;
+	res.buttonType    = NSMomentaryChangeButton;
 	res.bordered      = NO;
 	res.image         = [NSImage imageNamed:NSImageNameStopProgressFreestandingTemplate];
 	res.imagePosition = NSImageOnly;
@@ -102,8 +100,7 @@ static NSButton* OakCreateStopSearchButton ()
 	res.keyEquivalent = @".";
 	res.keyEquivalentModifierMask = NSEventModifierFlagCommand;
 	[res.cell setImageScaling:NSImageScaleProportionallyDown];
-	if(@available(macos 10.10, *))
-		res.accessibilityLabel = res.toolTip;
+	OakSetAccessibilityLabel(res, res.toolTip);
 	return res;
 }
 
@@ -186,11 +183,10 @@ static NSButton* OakCreateStopSearchButton ()
 		self.findTextField             = OakCreateTextField(self, self.findLabel, @"source.regexp.oniguruma");
 		self.findStringFormatter       = _findTextField.formatter;
 		self.findHistoryButton         = OakCreateHistoryButton(@"Show Find History");
-		self.countButton               = OakCreateButton(@"Σ", NSBezelStyleSmallSquare);
+		self.countButton               = OakCreateButton(@"Σ", NSSmallSquareBezelStyle);
 
 		self.countButton.toolTip = @"Show Results Count";
-		if(@available(macos 10.10, *))
-			self.countButton.accessibilityLabel = self.countButton.toolTip;
+		OakSetAccessibilityLabel(self.countButton, self.countButton.toolTip);
 
 		self.replaceLabel              = OakCreateLabel(@"Replace:");
 		self.replaceTextField          = OakCreateTextField(self, self.replaceLabel, @"textmate.format-string");
@@ -342,7 +338,7 @@ static NSButton* OakCreateStopSearchButton ()
 - (void)menuNeedsUpdate:(NSMenu*)aMenu
 {
 	[aMenu removeAllItems];
-	[NSApp sendAction:@selector(updateShowTabMenu:) to:nil from:aMenu];
+	[NSApp sendAction:@selector(updateSelectTabMenu:) to:nil from:aMenu];
 }
 
 - (NSDictionary*)allViews
@@ -509,11 +505,11 @@ static NSButton* OakCreateStopSearchButton ()
 - (void)updateWindowTitle
 {
 	if(NSString* folder = self.searchFolder)
-		self.window.title = [NSString localizedStringWithFormat:@"Find — %@", [folder stringByAbbreviatingWithTildeInPath]];
+		self.window.title = [NSString localizedStringWithFormat:MSG_FIND_IN_FOLDER_WINDOW_TITLE, [folder stringByAbbreviatingWithTildeInPath]];
 	else if(_searchTarget == FFSearchTargetOpenFiles)
-		self.window.title = @"Find — Open Files";
+		self.window.title = MSG_FIND_IN_OPEN_FILES_WINDOW_TITLE;
 	else
-		self.window.title = @"Find";
+		self.window.title = MSG_WINDOW_TITLE;
 }
 
 - (void)showWindow:(id)sender
@@ -849,7 +845,8 @@ static NSButton* OakCreateStopSearchButton ()
 	[paragraphStyle setLineBreakMode:NSLineBreakByTruncatingMiddle];
 	NSDictionary* globalAttrs = @{
 		NSParagraphStyleAttributeName:  paragraphStyle,
-		NSForegroundColorAttributeName: NSColor.controlTextColor,
+		NSForegroundColorAttributeName: [NSColor textColor],
+		NSFontAttributeName:            OakStatusBarFont(),
 	};
 	[res addAttributes:globalAttrs range:NSMakeRange(0, [[res string] length])];
 
@@ -858,7 +855,8 @@ static NSButton* OakCreateStopSearchButton ()
 
 - (void)setStatusString:(NSString*)aString
 {
-	self.statusTextField.attributedTitle = self.statusTextField.attributedAlternateTitle = [self formatStatusString:_statusString = aString];
+	self.statusTextField.attributedTitle = [self formatStatusString:_statusString = aString];
+	self.alternateStatusString = nil;
 }
 
 - (void)setAlternateStatusString:(NSString*)aString
@@ -1037,13 +1035,13 @@ static NSButton* OakCreateStopSearchButton ()
 {
 	BOOL res = YES;
 	if(aMenuItem.action == @selector(toggleSearchHiddenFolders:))
-		[aMenuItem setState:self.searchHiddenFolders ? NSControlStateValueOn : NSControlStateValueOff];
+		[aMenuItem setState:self.searchHiddenFolders ? NSOnState : NSOffState];
 	else if(aMenuItem.action == @selector(toggleSearchFolderLinks:))
-		[aMenuItem setState:self.searchFolderLinks ? NSControlStateValueOn : NSControlStateValueOff];
+		[aMenuItem setState:self.searchFolderLinks ? NSOnState : NSOffState];
 	else if(aMenuItem.action == @selector(toggleSearchFileLinks:))
-		[aMenuItem setState:self.searchFileLinks ? NSControlStateValueOn : NSControlStateValueOff];
+		[aMenuItem setState:self.searchFileLinks ? NSOnState : NSOffState];
 	else if(aMenuItem.action == @selector(toggleSearchBinaryFiles:))
-		[aMenuItem setState:self.searchBinaryFiles ? NSControlStateValueOn : NSControlStateValueOff];
+		[aMenuItem setState:self.searchBinaryFiles ? NSOnState : NSOffState];
 	else if(aMenuItem.action == @selector(goToParentFolder:))
 		res = self.searchFolder != nil || _searchTarget == FFSearchTargetFileBrowserItems && CommonAncestor(_fileBrowserItems);
 	return res;
