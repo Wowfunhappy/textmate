@@ -68,6 +68,7 @@ static NSButton* OakCreateImageToggleButton (NSImage* image, NSString* accessibi
 @property (nonatomic) NSPopUpButton* tabSizePopUp;
 @property (nonatomic) NSPopUpButton* symbolPopUp;
 @property (nonatomic) NSButton*      macroRecordingButton;
+@property (nonatomic) NSView*        recordingDivider;
 @end
 
 @implementation OTVStatusBar
@@ -101,7 +102,7 @@ static NSButton* OakCreateImageToggleButton (NSImage* image, NSString* accessibi
 		self.symbolPopUp                  = OakCreateStatusBarPopUpButton(@"", @"Symbol");
 		self.macroRecordingButton         = OakCreateImageToggleButton(recordMacroImage, @"Record a macro");
 		self.macroRecordingButton.action  = @selector(toggleMacroRecording:);
-		self.macroRecordingButton.toolTip = @"Click to start recording a macro";
+		self.macroRecordingButton.toolTip = @"Click to stop recording a macro";
 
 		NSFontDescriptor* descriptor = [self.selectionField.font.fontDescriptor fontDescriptorByAddingAttributes:@{
 			NSFontFeatureSettingsAttribute: @[ @{ NSFontFeatureTypeIdentifierKey: @(kNumberSpacingType), NSFontFeatureSelectorIdentifierKey: @(kMonospacedNumbersSelector) } ]
@@ -115,7 +116,11 @@ static NSButton* OakCreateImageToggleButton (NSImage* image, NSString* accessibi
 		NSView* dividerOne   = OakCreateDividerImageView();
 		NSView* dividerTwo   = OakCreateDividerImageView();
 		NSView* dividerThree = OakCreateDividerImageView();
-		NSView* dividerFour  = OakCreateDividerImageView();
+		self.recordingDivider = OakCreateDividerImageView();
+
+		// Hide recording indicator initially (shown only when recording)
+		self.recordingDivider.hidden = YES;
+		self.macroRecordingButton.hidden = YES;
 
 		NSDictionary* views = @{
 			@"line":         line,
@@ -126,7 +131,7 @@ static NSButton* OakCreateImageToggleButton (NSImage* image, NSString* accessibi
 			@"tabSize":      self.tabSizePopUp,
 			@"dividerThree": dividerThree,
 			@"symbol":       self.symbolPopUp,
-			@"dividerFour":  dividerFour,
+			@"dividerFour":  self.recordingDivider,
 			@"recording":    self.macroRecordingButton,
 		};
 
@@ -297,6 +302,8 @@ static NSButton* OakCreateImageToggleButton (NSImage* image, NSString* accessibi
 - (void)setRecordingMacro:(BOOL)flag
 {
 	_recordingMacro = flag;
+	self.recordingDivider.hidden = !flag;
+	self.macroRecordingButton.hidden = !flag;
 	if(_recordingMacro)
 	{
 		self.recordingTimer = [NSTimer scheduledTimerWithTimeInterval:0.02 target:self selector:@selector(updateMacroRecordingAnimation:) userInfo:nil repeats:YES];
