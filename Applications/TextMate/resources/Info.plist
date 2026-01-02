@@ -1031,6 +1031,8 @@
 			<array>
 				<string>public.plain-text</string>
 			</array>
+			<key>NSDocumentClass</key>
+			<string>TMDocument</string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeIconFile</key>
