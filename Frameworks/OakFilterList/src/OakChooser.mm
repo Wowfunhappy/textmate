@@ -112,16 +112,6 @@ NSMutableAttributedString* CreateAttributedStringWithMarkedUpRanges (std::string
 }
 
 @interface OakChooser () <NSWindowDelegate, NSTextFieldDelegate, NSTableViewDataSource, NSTableViewDelegate, NSSearchFieldDelegate>
-{
-	NSTitlebarAccessoryViewController* _accessoryViewController;
-
-	NSSearchField*      _searchField;
-	NSScrollView*       _scrollView;
-	NSTableView*        _tableView;
-	NSView* _footerView;
-	NSTextField*        _statusTextField;
-	NSTextField*        _itemCountTextField;
-}
 @end
 
 static void* kFirstResponderBinding = &kFirstResponderBinding;
@@ -129,17 +119,75 @@ static void* kFirstResponderBinding = &kFirstResponderBinding;
 @implementation OakChooser
 - (id)init
 {
-	if((self = [super initWithWindow:[[NSPanel alloc] initWithContentRect:NSMakeRect(600, 700, 400, 500) styleMask:(NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskResizable) backing:NSBackingStoreBuffered defer:NO]]))
+	if((self = [super init]))
 	{
 		_items = @[ ];
 
-		[[self.window standardWindowButton:NSWindowMiniaturizeButton] setHidden:YES];
-		[[self.window standardWindowButton:NSWindowZoomButton] setHidden:YES];
-		self.window.level             = NSFloatingWindowLevel;
-		self.window.frameAutosaveName = NSStringFromClass([self class]);
-		self.window.delegate          = self;
+		_searchField = [[OakLinkedSearchField alloc] initWithFrame:NSZeroRect];
+		[_searchField.cell setScrollable:YES];
+		[_searchField.cell setSendsSearchStringImmediately:YES];
+		if(![NSApp isFullKeyboardAccessEnabled])
+			_searchField.focusRingType = NSFocusRingTypeNone;
+		_searchField.delegate = self;
 
-		[self.window addObserver:self forKeyPath:@"firstResponder" options:NSKeyValueObservingOptionOld|NSKeyValueObservingOptionNew context:kFirstResponderBinding];
+		NSTableView* tableView = [[NSTableView alloc] initWithFrame:NSZeroRect];
+		[tableView addTableColumn:[[NSTableColumn alloc] initWithIdentifier:@"name"]];
+		tableView.headerView              = nil;
+		tableView.focusRingType           = NSFocusRingTypeNone;
+		tableView.allowsEmptySelection    = NO;
+		tableView.allowsMultipleSelection = NO;
+		tableView.refusesFirstResponder   = YES;
+		tableView.doubleAction            = @selector(accept:);
+		tableView.target                  = self;
+		tableView.dataSource              = self;
+		tableView.delegate                = self;
+		if(nil != &NSAccessibilitySharedFocusElementsAttribute) // MAC_OS_X_VERSION_10_10
+			[_searchField.cell accessibilitySetOverrideValue:@[tableView] forAttribute:NSAccessibilitySharedFocusElementsAttribute];
+		_tableView = tableView;
+
+		_scrollView = [[NSScrollView alloc] initWithFrame:NSZeroRect];
+		_scrollView.hasVerticalScroller   = YES;
+		_scrollView.hasHorizontalScroller = NO;
+		_scrollView.autohidesScrollers    = YES;
+		_scrollView.borderType            = NSNoBorder;
+		_scrollView.documentView          = _tableView;
+
+		_statusTextField = [[NSTextField alloc] initWithFrame:NSZeroRect];
+		_statusTextField.bezeled         = NO;
+		_statusTextField.bordered        = NO;
+		_statusTextField.drawsBackground = NO;
+		_statusTextField.editable        = NO;
+		_statusTextField.font            = OakStatusBarFont();
+		_statusTextField.selectable      = NO;
+		[[_statusTextField cell] setBackgroundStyle:NSBackgroundStyleRaised];
+		[[_statusTextField cell] setLineBreakMode:NSLineBreakByTruncatingMiddle];
+		[_statusTextField setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow forOrientation:NSLayoutConstraintOrientationHorizontal];
+		[_statusTextField setContentHuggingPriority:NSLayoutPriorityDefaultLow forOrientation:NSLayoutConstraintOrientationHorizontal];
+
+		_itemCountTextField = [[NSTextField alloc] initWithFrame:NSZeroRect];
+		_itemCountTextField.bezeled         = NO;
+		_itemCountTextField.bordered        = NO;
+		_itemCountTextField.drawsBackground = NO;
+		_itemCountTextField.editable        = NO;
+		_itemCountTextField.font            = OakStatusBarFont();
+		_itemCountTextField.selectable      = NO;
+		[[_itemCountTextField cell] setBackgroundStyle:NSBackgroundStyleRaised];
+		[_itemCountTextField setContentHuggingPriority:NSLayoutPriorityDefaultHigh forOrientation:NSLayoutConstraintOrientationHorizontal];
+
+		_window = [[NSPanel alloc] initWithContentRect:NSMakeRect(600, 700, 400, 500) styleMask:(NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskResizable|NSWindowStyleMaskTexturedBackground) backing:NSBackingStoreBuffered defer:NO];
+		[_window setAutorecalculatesContentBorderThickness:NO forEdge:NSMaxYEdge];
+		[_window setAutorecalculatesContentBorderThickness:NO forEdge:NSMinYEdge];
+		[_window setContentBorderThickness:32 forEdge:NSMaxYEdge];
+		[_window setContentBorderThickness:23 forEdge:NSMinYEdge];
+		[[_window standardWindowButton:NSWindowMiniaturizeButton] setHidden:YES];
+		[[_window standardWindowButton:NSWindowZoomButton] setHidden:YES];
+		_window.delegate          = self;
+		_window.nextResponder     = self;
+		_window.level             = NSFloatingWindowLevel;
+		_window.frameAutosaveName = NSStringFromClass([self class]);
+
+		[_searchField bind:NSValueBinding toObject:self withKeyPath:@"filterString" options:nil];
+		[_window addObserver:self forKeyPath:@"firstResponder" options:NSKeyValueObservingOptionOld|NSKeyValueObservingOptionNew context:kFirstResponderBinding];
 	}
 	return self;
 }
@@ -148,194 +196,38 @@ static void* kFirstResponderBinding = &kFirstResponderBinding;
 {
 	_searchField.delegate = nil;
 	[_searchField unbind:NSValueBinding];
-	[self.window removeObserver:self forKeyPath:@"firstResponder" context:kFirstResponderBinding];
+	[_window removeObserver:self forKeyPath:@"firstResponder" context:kFirstResponderBinding];
 
+	_window.delegate      = nil;
 	_tableView.target     = nil;
 	_tableView.dataSource = nil;
 	_tableView.delegate   = nil;
 }
 
-// =====================
-// = View Construction =
-// =====================
-
-- (NSBox*)makeDividerView
-{
-	NSBox* dividerView = [[NSBox alloc] initWithFrame:NSZeroRect];
-	dividerView.boxType     = NSBoxSeparator;
-	return dividerView;
-}
-
-- (void)addTitlebarAccessoryView:(NSView*)titlebarView
-{
-	titlebarView.translatesAutoresizingMaskIntoConstraints = NO;
-	[titlebarView setFrameSize:titlebarView.fittingSize];
-
-	if(@available(macos 10.10, *))
-	{
-		_accessoryViewController = [[NSTitlebarAccessoryViewController alloc] init];
-		_accessoryViewController.view = titlebarView;
-		[self.window addTitlebarAccessoryViewController:_accessoryViewController];
-	}
-}
-
-- (void)updateScrollViewInsets
-{
-	NSEdgeInsets insets = self.scrollView.contentInsets;
-	insets.bottom += self.footerView.fittingSize.height;
-	self.scrollView.automaticallyAdjustsContentInsets = NO;
-	self.scrollView.contentInsets = insets;
-}
-
-- (NSSearchField*)searchField
-{
-	if(!_searchField)
-	{
-		_searchField = [[OakLinkedSearchField alloc] initWithFrame:NSZeroRect];
-		[_searchField.cell setScrollable:YES];
-		[_searchField.cell setSendsSearchStringImmediately:YES];
-		_searchField.accessibilitySharedFocusElements = @[ self.tableView ];
-		if(!NSApp.isFullKeyboardAccessEnabled)
-			_searchField.focusRingType = NSFocusRingTypeNone;
-		_searchField.delegate = self;
-
-		[_searchField bind:NSValueBinding toObject:self withKeyPath:@"filterString" options:nil];
-	}
-	return _searchField;
-}
-
-- (NSTableView*)tableView
-{
-	if(!_tableView)
-	{
-		_tableView = [[NSTableView alloc] initWithFrame:NSZeroRect];
-		_tableView.headerView              = nil;
-		_tableView.focusRingType           = NSFocusRingTypeNone;
-		_tableView.allowsEmptySelection    = NO;
-		_tableView.allowsMultipleSelection = NO;
-		_tableView.refusesFirstResponder   = YES;
-		_tableView.doubleAction            = @selector(accept:);
-		_tableView.target                  = self;
-		_tableView.dataSource              = self;
-		_tableView.delegate                = self;
-
-		[_tableView addTableColumn:[[NSTableColumn alloc] initWithIdentifier:@"name"]];
-	}
-	return _tableView;
-}
-
-- (NSScrollView*)scrollView
-{
-	if(!_scrollView)
-	{
-		_scrollView = [[NSScrollView alloc] initWithFrame:NSZeroRect];
-		_scrollView.hasVerticalScroller   = YES;
-		_scrollView.hasHorizontalScroller = NO;
-		_scrollView.autohidesScrollers    = YES;
-		_scrollView.borderType            = NSNoBorder;
-		_scrollView.documentView          = self.tableView;
-
-		NSView* contentView = self.window.contentView;
-		_scrollView.translatesAutoresizingMaskIntoConstraints = NO;
-		[contentView addSubview:_scrollView positioned:NSWindowBelow relativeTo:nil];
-
-		NSDictionary* views = @{ @"scrollView": _scrollView };
-		[contentView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|[scrollView]|" options:0 metrics:nil views:views]];
-		[contentView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|[scrollView]|" options:0 metrics:nil views:views]];
-	}
-	return _scrollView;
-}
-
-- (NSTextField*)statusTextField
-{
-	if(!_statusTextField)
-	{
-		_statusTextField = [[NSTextField alloc] initWithFrame:NSZeroRect];
-		_statusTextField.bezeled         = NO;
-		_statusTextField.bordered        = NO;
-		_statusTextField.drawsBackground = NO;
-		_statusTextField.editable        = NO;
-		_statusTextField.font            = OakStatusBarFont();
-		_statusTextField.selectable      = NO;
-		[[_statusTextField cell] setLineBreakMode:NSLineBreakByTruncatingMiddle];
-		[_statusTextField setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow forOrientation:NSLayoutConstraintOrientationHorizontal];
-		[_statusTextField setContentHuggingPriority:NSLayoutPriorityDefaultLow forOrientation:NSLayoutConstraintOrientationHorizontal];
-	}
-	return _statusTextField;
-}
-
-- (NSTextField*)itemCountTextField
-{
-	if(!_itemCountTextField)
-	{
-		_itemCountTextField = [[NSTextField alloc] initWithFrame:NSZeroRect];
-		_itemCountTextField.bezeled         = NO;
-		_itemCountTextField.bordered        = NO;
-		_itemCountTextField.drawsBackground = NO;
-		_itemCountTextField.editable        = NO;
-		_itemCountTextField.font            = OakStatusBarFont();
-		_itemCountTextField.selectable      = NO;
-		[_itemCountTextField setContentHuggingPriority:NSLayoutPriorityDefaultHigh forOrientation:NSLayoutConstraintOrientationHorizontal];
-
-		NSFontDescriptor* descriptor = [_itemCountTextField.font.fontDescriptor fontDescriptorByAddingAttributes:@{
-			NSFontFeatureSettingsAttribute: @[ @{ NSFontFeatureTypeIdentifierKey: @(kNumberSpacingType), NSFontFeatureSelectorIdentifierKey: @(kMonospacedNumbersSelector) } ]
-		}];
-		_itemCountTextField.font = [NSFont fontWithDescriptor:descriptor size:0];
-	}
-	return _itemCountTextField;
-}
-
-- (NSView*)footerView
-{
-	if(!_footerView)
-	{
-		if(@available(macos 10.10, *))
-		{
-			NSVisualEffectView* effectView = [[NSVisualEffectView alloc] initWithFrame:NSZeroRect];
-			effectView.blendingMode = NSVisualEffectBlendingModeWithinWindow;
-			effectView.material     = NSVisualEffectMaterialTitlebar;
-			if(@available(macos 10.14, *))
-				effectView.material = NSVisualEffectMaterialHeaderView;
-			_footerView = effectView;
-		}
-		else
-		{
-			_footerView = [[NSView alloc] initWithFrame:NSZeroRect];
-		}
-
-		NSView* contentView = self.window.contentView;
-		contentView.wantsLayer = YES;
-		_footerView.translatesAutoresizingMaskIntoConstraints = NO;
-		[contentView addSubview:_footerView positioned:NSWindowAbove relativeTo:nil];
-
-		NSDictionary* views = @{ @"footerView": _footerView, };
-		[contentView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-(>=77)-[footerView]|" options:0 metrics:nil views:views]];
-		[contentView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|[footerView]|" options:0 metrics:nil views:views]];
-	}
-	return _footerView;
-}
-
-// =====================
-
 - (void)showWindow:(id)sender
 {
-	[self.window makeFirstResponder:self.window.initialFirstResponder];
-	[super showWindow:sender];
+	[_window makeFirstResponder:_window.initialFirstResponder];
+	[_window makeKeyAndOrderFront:self];
 }
 
 - (void)showWindowRelativeToFrame:(NSRect)parentFrame
 {
-	if(![self.window isVisible])
+	if(![_window isVisible])
 	{
-		[self.window layoutIfNeeded];
-		NSRect frame  = [self.window frame];
+		[_window layoutIfNeeded];
+		NSRect frame  = [_window frame];
 		NSRect parent = parentFrame;
 
 		frame.origin.x = NSMinX(parent) + round((NSWidth(parent)  - NSWidth(frame))  * 1 / 4);
 		frame.origin.y = NSMinY(parent) + round((NSHeight(parent) - NSHeight(frame)) * 3 / 4);
-		[self.window setFrame:frame display:NO];
+		[_window setFrame:frame display:NO];
 	}
 	[self showWindow:self];
+}
+
+- (void)close
+{
+	[_window performClose:self];
 }
 
 // ================================================================================
@@ -382,7 +274,8 @@ static void* kFirstResponderBinding = &kFirstResponderBinding;
 	[self updateFilterString:_filterString];
 
 	// see http://lists.apple.com/archives/accessibility-dev/2014/Aug/msg00024.html
-	NSAccessibilityPostNotification(_tableView, NSAccessibilitySelectedRowsChangedNotification);
+	if(nil != &NSAccessibilitySharedFocusElementsAttribute) // MAC_OS_X_VERSION_10_10
+		NSAccessibilityPostNotification(_tableView, NSAccessibilitySelectedRowsChangedNotification);
 }
 
 - (void)updateFilterString:(NSString*)aString
@@ -422,7 +315,7 @@ static void* kFirstResponderBinding = &kFirstResponderBinding;
 
 	[self updateStatusText:self];
 
-	self.itemCountTextField.stringValue = [NSString stringWithFormat:@"%@ item%s", [NSNumberFormatter localizedStringFromNumber:@(_items.count) numberStyle:NSNumberFormatterDecimalStyle], _items.count == 1 ? "" : "s"];
+	_itemCountTextField.stringValue = [NSString stringWithFormat:@"%@ item%s", [NSNumberFormatter localizedStringFromNumber:@(_items.count) numberStyle:NSNumberFormatterDecimalStyle], _items.count == 1 ? "" : "s"];
 }
 
 - (NSArray*)selectedItems
@@ -436,7 +329,7 @@ static void* kFirstResponderBinding = &kFirstResponderBinding;
 	NSMutableArray* items = [_items mutableCopy];
 	[items removeObjectsAtIndexes:anIndexSet];
 	_items = items;
-	self.itemCountTextField.stringValue = [NSString stringWithFormat:@"%@ item%s", [NSNumberFormatter localizedStringFromNumber:@(_items.count) numberStyle:NSNumberFormatterDecimalStyle], _items.count == 1 ? "" : "s"];
+	_itemCountTextField.stringValue = [NSString stringWithFormat:@"%@ item%s", [NSNumberFormatter localizedStringFromNumber:@(_items.count) numberStyle:NSNumberFormatterDecimalStyle], _items.count == 1 ? "" : "s"];
 
 	if([_tableView numberOfRows] && ![[_tableView selectedRowIndexes] count] && [anIndexSet count])
 		[_tableView selectRowIndexes:[NSIndexSet indexSetWithIndex:MIN([anIndexSet firstIndex], [_tableView numberOfRows]-1)] byExtendingSelection:NO];
@@ -457,15 +350,15 @@ static void* kFirstResponderBinding = &kFirstResponderBinding;
 
 - (void)accept:(id)sender
 {
-	[self.window orderOut:self];
+	[_window orderOut:self];
 	if(_action)
 		[NSApp sendAction:_action to:_target from:self];
-	[self.window close];
+	[_window close];
 }
 
 - (void)cancel:(id)sender
 {
-	[self.window performClose:self];
+	[self close];
 }
 
 // =========================

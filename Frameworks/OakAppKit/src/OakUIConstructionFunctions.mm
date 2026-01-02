@@ -350,6 +350,16 @@ OakBackgroundFillView* OakCreateVerticalLine (OakBackgroundFillViewStyle style)
 	return view;
 }
 
+OakBackgroundFillView* OakCreateHorizontalLine (NSColor* primaryColor, NSColor* secondaryColor)
+{
+	OakBackgroundFillView* view = [[OakBackgroundFillView alloc] initWithFrame:NSZeroRect];
+	view.activeBackgroundColor   = primaryColor;
+	view.inactiveBackgroundColor = secondaryColor;
+	[view addConstraint:[NSLayoutConstraint constraintWithItem:view attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeNotAnAttribute multiplier:1 constant:1]];
+	view.translatesAutoresizingMaskIntoConstraints = NO;
+	return view;
+}
+
 OakBackgroundFillView* OakCreateHorizontalLine (OakBackgroundFillViewStyle style)
 {
 	OakBackgroundFillView* view = [[OakBackgroundFillView alloc] initWithFrame:NSZeroRect];

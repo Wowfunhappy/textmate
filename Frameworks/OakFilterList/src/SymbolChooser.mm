@@ -41,48 +41,44 @@ static SymbolChooserItem* CreateItem (OakDocument* document, text::pos_t const& 
 	{
 		self.window.title = @"Jump to Symbol";
 
-		NSDictionary* titlebarViews = @{
-			@"searchField": self.searchField,
-		};
+		OakBackgroundFillView* topDivider    = OakCreateHorizontalLine([NSColor grayColor], [NSColor lightGrayColor]);
+		OakBackgroundFillView* bottomDivider = OakCreateHorizontalLine([NSColor grayColor], [NSColor lightGrayColor]);
 
-		NSView* titlebarView = [[NSView alloc] initWithFrame:NSZeroRect];
-		OakAddAutoLayoutViewsToSuperview(titlebarViews.allValues, titlebarView);
-
-		[titlebarView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-(8)-[searchField]-(8)-|" options:0 metrics:nil views:titlebarViews]];
-		[titlebarView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-(4)-[searchField]-(8)-|" options:0 metrics:nil views:titlebarViews]];
-		[self addTitlebarAccessoryView:titlebarView];
-
-		NSDictionary* footerViews = @{
-			@"dividerView":        [self makeDividerView],
+		NSDictionary* views = @{
+			@"searchField":        self.searchField,
+			@"topDivider":         topDivider,
+			@"scrollView":         self.scrollView,
+			@"bottomDivider":      bottomDivider,
 			@"statusTextField":    self.statusTextField,
 			@"itemCountTextField": self.itemCountTextField,
 		};
 
-		NSView* footerView = self.footerView;
-		OakAddAutoLayoutViewsToSuperview(footerViews.allValues, footerView);
+		NSView* contentView = self.window.contentView;
+		OakAddAutoLayoutViewsToSuperview([views allValues], contentView);
 
-		[footerView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|[dividerView]|"                                 options:0 metrics:nil views:footerViews]];
-		[footerView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-[statusTextField]-[itemCountTextField]-|"      options:NSLayoutFormatAlignAllCenterY metrics:nil views:footerViews]];
-		[footerView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|[dividerView(==1)]-(4)-[statusTextField]-(5)-|" options:0 metrics:nil views:footerViews]];
+		[contentView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-(8)-[searchField(>=50)]-(8)-|"                      options:0 metrics:nil views:views]];
+		[contentView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|[scrollView(==topDivider,==bottomDivider)]|"         options:0 metrics:nil views:views]];
 
-		[self updateScrollViewInsets];
+		[contentView addConstraint:[NSLayoutConstraint constraintWithItem:topDivider    attribute:NSLayoutAttributeLeft relatedBy:NSLayoutRelationEqual toItem:contentView attribute:NSLayoutAttributeLeft multiplier:1.0 constant:0.0]];
+		[contentView addConstraint:[NSLayoutConstraint constraintWithItem:bottomDivider attribute:NSLayoutAttributeLeft relatedBy:NSLayoutRelationEqual toItem:contentView attribute:NSLayoutAttributeLeft multiplier:1.0 constant:0.0]];
 
-		OakSetupKeyViewLoop(@[ self.searchField ]);
+		[contentView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-[statusTextField]-[itemCountTextField]-|" options:NSLayoutFormatAlignAllCenterY metrics:nil views:views]];
+		[contentView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-(2)-[searchField]-(8)-[topDivider][scrollView(>=50)][bottomDivider]-(4)-[statusTextField]-(5)-|" options:0 metrics:nil views:views]];
 	}
 	return self;
 }
 
 - (void)windowWillClose:(NSNotification*)aNotification
 {
-	[self setTMDocument:nil];
+	[self setDocument:nil];
 }
 
-- (void)setTMDocument:(OakDocument*)aDocument
+- (void)setDocument:(OakDocument*)aDocument
 {
-	if(_TMDocument = aDocument)
+	if(_document = aDocument)
 		[self updateItems:self];
 	NSString* title = @"Jump to Symbol";
-	self.window.title = _TMDocument ? [title stringByAppendingFormat:@" — %@", _TMDocument.displayName] : title;
+	self.window.title = _document ? [title stringByAppendingFormat:@" — %@", _document.displayName] : title;
 }
 
 - (void)setSelectionString:(NSString*)aString
@@ -116,13 +112,13 @@ static SymbolChooserItem* CreateItem (OakDocument* document, text::pos_t const& 
 - (void)updateItems:(id)sender
 {
 	NSMutableArray* res = [NSMutableArray array];
-	if(_TMDocument)
+	if(_document)
 	{
 		if(OakIsEmptyString(self.filterString))
 		{
-			[_TMDocument enumerateSymbolsUsingBlock:^(text::pos_t const& pos, NSString* symbol){
+			[_document enumerateSymbolsUsingBlock:^(text::pos_t const& pos, NSString* symbol){
 				if(![symbol isEqualToString:@"-"])
-					[res addObject:CreateItem(_TMDocument, pos, symbol, std::vector< std::pair<size_t, size_t> >())];
+					[res addObject:CreateItem(_document, pos, symbol, std::vector< std::pair<size_t, size_t> >())];
 			}];
 		}
 		else
@@ -132,7 +128,7 @@ static SymbolChooserItem* CreateItem (OakDocument* document, text::pos_t const& 
 			__block NSString* sectionName = nil;
 			__block std::multimap<double, SymbolChooserItem*> rankedItems;
 
-			[_TMDocument enumerateSymbolsUsingBlock:^(text::pos_t const& pos, NSString* symbol){
+			[_document enumerateSymbolsUsingBlock:^(text::pos_t const& pos, NSString* symbol){
 				if([symbol isEqualToString:@"-"])
 					return;
 
@@ -142,7 +138,7 @@ static SymbolChooserItem* CreateItem (OakDocument* document, text::pos_t const& 
 
 				std::vector< std::pair<size_t, size_t> > ranges;
 				if(double rank = oak::rank(filter, to_s(symbol), &ranges))
-					rankedItems.emplace(1 - rank, CreateItem(_TMDocument, pos, indented && sectionName ? [NSString stringWithFormat:@"%@ — %@", symbol, sectionName] : symbol, ranges));
+					rankedItems.emplace(1 - rank, CreateItem(_document, pos, indented && sectionName ? [NSString stringWithFormat:@"%@ — %@", symbol, sectionName] : symbol, ranges));
 			}];
 
 			for(auto const& pair : rankedItems)
