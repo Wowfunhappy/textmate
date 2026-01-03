@@ -114,8 +114,8 @@ NSString* const SyntaxMateErrorDomain = @"com.macromates.SyntaxMate.Error";
 		size_t bufferTo = ++pair != scopes.end() ? pair->first : buffer.size();
 		size_t stringLength = [NSString stringWithCxxString:buffer.substr(bufferFrom, bufferTo)].length;
 		NSDictionary* attrs = @{
-			NSForegroundColorAttributeName: [NSColor colorWithCGColor:styles.foreground()],
-			NSBackgroundColorAttributeName: [NSColor colorWithCGColor:styles.background()],
+			NSForegroundColorAttributeName: OakColorFromCGColor(styles.foreground()),
+			NSBackgroundColorAttributeName: OakColorFromCGColor(styles.background()),
 			NSUnderlineStyleAttributeName: @(styles.underlined() ? NSUnderlineStyleSingle : NSUnderlineStyleNone),
 			NSStrikethroughStyleAttributeName: @(styles.strikethrough() ? NSUnderlineStyleSingle : NSUnderlineStyleNone)
 		};
