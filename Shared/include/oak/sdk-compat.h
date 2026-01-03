@@ -7,6 +7,16 @@
 @end
 #endif
 
+// 10.9 compatible replacement for +[NSColor colorWithCGColor:] (added in 10.10)
+NS_INLINE NSColor* OakColorFromCGColor (CGColorRef cgColor)
+{
+	if(cgColor == NULL)
+		return nil;
+	NSColorSpace* colorSpace = [[NSColorSpace alloc] initWithCGColorSpace:CGColorGetColorSpace(cgColor)];
+	NSColor* color = [NSColor colorWithColorSpace:colorSpace components:CGColorGetComponents(cgColor) count:CGColorGetNumberOfComponents(cgColor)];
+	return color;
+}
+
 #if !defined(MAC_OS_X_VERSION_10_14) || (MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_14)
 #define NSVisualEffectMaterialHeaderView (NSVisualEffectMaterial)10
 #define NSVisualEffectMaterialToolTip (NSVisualEffectMaterial)17

@@ -123,8 +123,8 @@ static NSAttributedString* create_attributed_string (ng::buffer_t& buffer, std::
 		size_t to = ++pair != scopes.end() ? pair->first : buffer.size();
 
 		[output appendAttributedString:[[NSAttributedString alloc] initWithString:[NSString stringWithCxxString:buffer.substr(from, to)] attributes:@{
-			NSForegroundColorAttributeName:    [NSColor colorWithCGColor:styles.foreground()],
-			NSBackgroundColorAttributeName:    [NSColor colorWithCGColor:styles.background()],
+			NSForegroundColorAttributeName:    OakColorFromCGColor(styles.foreground()),
+			NSBackgroundColorAttributeName:    OakColorFromCGColor(styles.background()),
 			NSFontAttributeName:               (__bridge NSFont*)styles.font(),
 			NSUnderlineStyleAttributeName:     @(styles.underlined() ? NSUnderlineStyleSingle : NSUnderlineStyleNone),
 			NSStrikethroughStyleAttributeName: @(styles.strikethrough() ? NSUnderlineStyleSingle : NSUnderlineStyleNone),
@@ -223,7 +223,7 @@ OSStatus TextMateQuickLookPlugIn_GeneratePreviewForURL (void* instance, QLPrevie
 
 	NSData* outputData = [output RTFFromRange:NSMakeRange(0, [output length]) documentAttributes:@{
 		NSDocumentTypeDocumentAttribute:    [NSString stringWithCxxString:fileType],
-		NSBackgroundColorDocumentAttribute: theme ? [NSColor colorWithCGColor:theme->background(fileType)] : [NSColor whiteColor],
+		NSBackgroundColorDocumentAttribute: theme ? OakColorFromCGColor(theme->background(fileType)) : [NSColor whiteColor],
 	}];
 
 	QLPreviewRequestSetDataRepresentation(request, (__bridge CFDataRef)outputData, kUTTypeRTF, nil);
