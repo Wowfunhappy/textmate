@@ -4,6 +4,9 @@
 #import "OakRunCommandWindowController.h"
 #import <document/OakDocument.h>
 #import <document/OakDocumentController.h>
+#import <document/TMDocument.h>
+#import <document/TMDocumentRegistry.h>
+#import <document/TMWindowController.h>
 #import <OakAppKit/NSAlert Additions.h>
 #import <OakAppKit/NSMenuItem Additions.h>
 #import <OakAppKit/OakAppKit.h>
@@ -1022,7 +1025,16 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 
 	if(doc.path)
 	{
-		[self saveDocumentsUsingEnumerator:@[ doc ].objectEnumerator completionHandler:nil];
+		// Route through TMDocument for explicit saves to enable Versions support
+		TMDocument* tmDoc = [[TMDocumentRegistry sharedRegistry] documentForOakDocument:doc];
+		if(tmDoc)
+		{
+			[tmDoc saveDocumentWithDelegate:nil didSaveSelector:nil contextInfo:nil];
+		}
+		else
+		{
+			[self saveDocumentsUsingEnumerator:@[ doc ].objectEnumerator completionHandler:nil];
+		}
 	}
 	else
 	{
@@ -1486,6 +1498,56 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 		self.projectPath = projectPath;
 
 		self.documentView.document = _selectedDocument;
+
+		// Update TMDocument wrapper for NSDocument autosaving and Versions support
+		// Move the window controller to the newly selected document so Versions shows the correct document
+		TMDocument* tmDocument = [[TMDocumentRegistry sharedRegistry] documentForOakDocument:_selectedDocument];
+		if(tmDocument)
+		{
+			// Find or create the window controller for this window
+			TMWindowController* wc = nil;
+			for(NSWindowController* existingWC in tmDocument.windowControllers)
+			{
+				if([existingWC isKindOfClass:[TMWindowController class]] && existingWC.window == self.window)
+				{
+					wc = (TMWindowController*)existingWC;
+					break;
+				}
+			}
+
+			if(!wc)
+			{
+				// Check if another TMDocument has our window controller and move it
+				for(NSDocument* doc in [[NSDocumentController sharedDocumentController] documents])
+				{
+					if([doc isKindOfClass:[TMDocument class]] && doc != tmDocument)
+					{
+						for(NSWindowController* existingWC in doc.windowControllers)
+						{
+							if([existingWC isKindOfClass:[TMWindowController class]] && existingWC.window == self.window)
+							{
+								wc = (TMWindowController*)existingWC;
+								[doc removeWindowController:wc];
+								break;
+							}
+						}
+						if(wc) break;
+					}
+				}
+			}
+
+			if(!wc)
+			{
+				// Create a new window controller
+				wc = [[TMWindowController alloc] initWithWindow:self.window];
+				wc.documentWindowController = self;
+			}
+
+			// Add to the current document if not already there
+			if(![tmDocument.windowControllers containsObject:wc])
+				[tmDocument addWindowController:wc];
+		}
+
 		[[self class] scheduleSessionBackup:self];
 	}
 	else
