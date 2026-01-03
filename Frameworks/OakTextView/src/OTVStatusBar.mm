@@ -122,7 +122,8 @@ static NSButton* OakCreateImageToggleButton (NSImage* image, NSString* accessibi
 
 		// Hide recording indicator initially (shown only when recording)
 		self.macroRecordingButton.hidden = YES;
-		// Hide symbol divider initially (shown only when there's a symbol)
+		// Hide symbol popup and divider initially (shown only when there's a symbol)
+		self.symbolPopUp.hidden = YES;
 		self.symbolDivider.hidden = YES;
 
 		NSDictionary* views = @{
@@ -277,12 +278,16 @@ static NSButton* OakCreateImageToggleButton (NSImage* image, NSString* accessibi
 
 - (void)setSymbolName:(NSString*)newSymbolName
 {
+	// nil = no symbols in document (hide), empty string = symbols exist but none selected (show "Symbols")
+	BOOL documentHasSymbols = (newSymbolName != nil);
+	self.symbolPopUp.hidden = !documentHasSymbols;
+	self.symbolDivider.hidden = !documentHasSymbols;
 	if(_symbolName == newSymbolName || [_symbolName isEqualToString:newSymbolName])
 		return;
 	_symbolName = newSymbolName;
 	[self.symbolPopUp.menu removeAllItems];
-	[self.symbolPopUp addItemWithTitle:newSymbolName ?: @"Symbols"];
-	self.symbolDivider.hidden = (newSymbolName == nil);
+	NSString* title = (newSymbolName.length > 0) ? newSymbolName : @"Symbols";
+	[self.symbolPopUp addItemWithTitle:title];
 }
 
 - (void)setFileType:(NSString*)newFileType

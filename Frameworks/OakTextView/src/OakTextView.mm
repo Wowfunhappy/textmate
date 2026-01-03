@@ -3558,8 +3558,15 @@ static char const* kOakMenuItemTitle = "OakMenuItemTitle";
 
 - (void)updateSymbol
 {
-	NSString* newSymbol = to_ns(documentView->symbol());
-	if(![_symbol isEqualToString:newSymbol])
+	NSString* newSymbol;
+	if(documentView->symbols().empty())
+		newSymbol = nil;  // No symbols in document → hide popup
+	else if(to_ns(documentView->symbol()) == nil)
+		newSymbol = @"";  // Has symbols but none selected → show "Symbols"
+	else
+		newSymbol = to_ns(documentView->symbol());
+
+	if(_symbol != newSymbol && ![_symbol isEqualToString:newSymbol])
 		self.symbol = newSymbol;
 }
 
