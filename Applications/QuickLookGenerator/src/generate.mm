@@ -159,8 +159,12 @@ OSStatus TextMateQuickLookPlugIn_GenerateThumbnailForURL (void* instance, QLThum
 	if(QLThumbnailRequestIsCancelled(request))
 		return noErr;
 
-	// w/e the 3rd parameter, the context will always be a bitmap context
-	CGContextRef bitmapContext = QLThumbnailRequestCreateContext(request, maxSize, true, NULL);
+	// Use portrait aspect ratio
+	CGSize size = maxSize;
+	if(size.width > size.height * (8.5 / 11.0))
+		size.width = size.height * (8.5 / 11.0);
+
+	CGContextRef bitmapContext = QLThumbnailRequestCreateContext(request, size, true, NULL);
 	if(bitmapContext)
 	{
 		NSGraphicsContext* context = [NSGraphicsContext graphicsContextWithGraphicsPort:bitmapContext flipped:YES];
@@ -169,7 +173,7 @@ OSStatus TextMateQuickLookPlugIn_GenerateThumbnailForURL (void* instance, QLThum
 			[NSGraphicsContext saveGraphicsState];
 			[NSGraphicsContext setCurrentContext:context];
 			CGContextSaveGState(bitmapContext);
-			CGContextTranslateCTM(bitmapContext, 0.0, maxSize.height);
+			CGContextTranslateCTM(bitmapContext, 0.0, size.height);
 			CGContextScaleCTM(bitmapContext, 1.0, -1.0);
 			[output drawAtPoint:NSZeroPoint];
 			CGContextRestoreGState(bitmapContext);
