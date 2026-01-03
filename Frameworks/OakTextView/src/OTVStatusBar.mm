@@ -67,8 +67,9 @@ static NSButton* OakCreateImageToggleButton (NSImage* image, NSString* accessibi
 @property (nonatomic) NSPopUpButton* grammarPopUp;
 @property (nonatomic) NSPopUpButton* tabSizePopUp;
 @property (nonatomic) NSPopUpButton* symbolPopUp;
+@property (nonatomic) NSView*        symbolDivider;
+@property (nonatomic) NSView*        symbolSpacer;
 @property (nonatomic) NSButton*      macroRecordingButton;
-@property (nonatomic) NSView*        recordingDivider;
 @end
 
 @implementation OTVStatusBar
@@ -116,11 +117,13 @@ static NSButton* OakCreateImageToggleButton (NSImage* image, NSString* accessibi
 		NSView* dividerOne   = OakCreateDividerImageView();
 		NSView* dividerTwo   = OakCreateDividerImageView();
 		NSView* dividerThree = OakCreateDividerImageView();
-		self.recordingDivider = OakCreateDividerImageView();
+		self.symbolDivider = OakCreateDividerImageView();
+		self.symbolSpacer = [[NSView alloc] initWithFrame:NSZeroRect];
 
 		// Hide recording indicator initially (shown only when recording)
-		self.recordingDivider.hidden = YES;
 		self.macroRecordingButton.hidden = YES;
+		// Hide symbol divider initially (shown only when there's a symbol)
+		self.symbolDivider.hidden = YES;
 
 		NSDictionary* views = @{
 			@"line":         line,
@@ -131,7 +134,8 @@ static NSButton* OakCreateImageToggleButton (NSImage* image, NSString* accessibi
 			@"tabSize":      self.tabSizePopUp,
 			@"dividerThree": dividerThree,
 			@"symbol":       self.symbolPopUp,
-			@"dividerFour":  self.recordingDivider,
+			@"dividerFour":  self.symbolDivider,
+			@"spacer":       self.symbolSpacer,
 			@"recording":    self.macroRecordingButton,
 		};
 
@@ -147,7 +151,7 @@ static NSButton* OakCreateImageToggleButton (NSImage* image, NSString* accessibi
 		[self.symbolPopUp setContentHuggingPriority:NSLayoutPriorityDefaultLow-1 forOrientation:NSLayoutConstraintOrientationHorizontal];
 		[self.symbolPopUp setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow-1 forOrientation:NSLayoutConstraintOrientationHorizontal];
 
-		[self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-10-[line]-[selection(>=50,<=225)]-8-[dividerOne]-(-2)-[grammar(>=125@400,>=50,<=225)]-5-[dividerTwo]-(-2)-[tabSize]-4-[dividerThree]-(-2)-[symbol(>=125@450,>=50)]-5-[dividerFour]-6-[recording]-7-|" options:0 metrics:nil views:views]];
+		[self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-10-[line]-[selection(>=50,<=225)]-8-[dividerOne]-(-2)-[grammar(>=125@400,>=50,<=225)]-5-[dividerTwo]-(-2)-[tabSize]-4-[dividerThree]-(-2)-[symbol(>=125@450,>=50,<=225)]-5-[dividerFour]-[spacer(>=0)]-6-[recording]-7-|" options:0 metrics:nil views:views]];
 		[self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|[dividerOne(==dividerTwo,==dividerThree,==dividerFour)]|" options:NSLayoutFormatAlignAllTop metrics:nil views:views]];
 
 		// Baseline align text-controls
@@ -278,6 +282,7 @@ static NSButton* OakCreateImageToggleButton (NSImage* image, NSString* accessibi
 	_symbolName = newSymbolName;
 	[self.symbolPopUp.menu removeAllItems];
 	[self.symbolPopUp addItemWithTitle:newSymbolName ?: @"Symbols"];
+	self.symbolDivider.hidden = (newSymbolName == nil);
 }
 
 - (void)setFileType:(NSString*)newFileType
@@ -302,7 +307,6 @@ static NSButton* OakCreateImageToggleButton (NSImage* image, NSString* accessibi
 - (void)setRecordingMacro:(BOOL)flag
 {
 	_recordingMacro = flag;
-	self.recordingDivider.hidden = !flag;
 	self.macroRecordingButton.hidden = !flag;
 	if(_recordingMacro)
 	{
