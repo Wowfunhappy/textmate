@@ -163,8 +163,10 @@ class Target
       @files << [ signature, "#{bundle}/Contents/_CodeSignature/CodeResources" ]
 
       if File.extname(bundle) == '.app'
-        buildfile.build('run_application', bundle_path, "#{bundle_path}.run", nil, signature)
-        buildfile.meta("#{self.name}/run", "#{bundle_path}.run")
+        if @context['RUN']
+          buildfile.build('run_application', bundle_path, "#{bundle_path}.run", nil, signature)
+          buildfile.meta("#{self.name}/run", "#{bundle_path}.run")
+        end
         buildfile.assign("#{self.name}_app", bundle_path)
         buildfile.assign("#{self.name}_sign", signature)
       end
@@ -174,9 +176,11 @@ class Target
 
       buildfile.build('link', objects, executable, link_flags(all_targets))
       buildfile.build('sign', executable, signature, sign_flags, sign_deps)
-      buildfile.build('run', executable, "#{executable}.run", nil, signature)
+      if @context['RUN']
+        buildfile.build('run', executable, "#{executable}.run", nil, signature)
+        buildfile.meta("#{self.name}/run", "#{executable}.run")
+      end
       buildfile.meta(self.name, signature)
-      buildfile.meta("#{self.name}/run", "#{executable}.run")
 
       buildfile.assign("#{self.name}_exe", executable)
       buildfile.assign("#{self.name}_sign", signature)
