@@ -136,7 +136,7 @@ BOOL HasDocumentWindow (NSArray* windows)
 				{ @"Close Other Tabs",        @selector(performCloseOtherTabsXYZ:), @"w", .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagControl },
 				{ @"Close Tabs to the Right", @selector(performCloseTabsToTheRight:)       },
 				{ /* -------- */ },
-				{ @"Sticky",                  @selector(toggleSticky:)                     },
+				{ @"Don't Automatically Close This Tab", @selector(toggleSticky:)            },
 				{ /* -------- */ },
 				{ @"Save",                    @selector(saveDocument:),             @"s"   },
 				{ @"Save As…",                @selector(saveDocumentAs:),           @"S"   },

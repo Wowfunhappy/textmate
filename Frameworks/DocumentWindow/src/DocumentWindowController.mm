@@ -1681,7 +1681,7 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 		{ @"Close Other Tabs",         @selector(takeTabsToCloseFrom:),    .representedObject = otherTabs     },
 		{ @"Close Tabs to the Right",  @selector(takeTabsToCloseFrom:),    .representedObject = rightSideTabs },
 		{ /* -------- */ },
-		{ @"Sticky",                   @selector(toggleSticky:),           .representedObject = clickedTab    },
+		{ @"Don't Automatically Close This Tab", @selector(toggleSticky:), .representedObject = clickedTab    },
 	};
 	return MBCreateMenu(items);
 }
@@ -2286,7 +2286,17 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 		{
 			active = [indexSet count] != 0;
 			if(active && [menuItem action] == @selector(toggleSticky:))
+			{
 				[menuItem setState:[self isDocumentSticky:_documents[indexSet.firstIndex]] ? NSOnState : NSOffState];
+
+				BOOL hidden = [[NSUserDefaults standardUserDefaults] boolForKey:kUserDefaultsDisableTabAutoCloseKey];
+				[menuItem setHidden:hidden];
+
+				NSMenu* menu = [menuItem menu];
+				NSInteger index = [menu indexOfItem:menuItem];
+				if(index > 0 && [[menu itemAtIndex:index - 1] isSeparatorItem])
+					[[menu itemAtIndex:index - 1] setHidden:hidden];
+			}
 		}
 	}
 
