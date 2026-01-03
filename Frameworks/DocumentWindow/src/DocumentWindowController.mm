@@ -308,6 +308,11 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 
 	[_arrayController unbind:NSContentBinding];
 
+	// Save session synchronously before removing ourselves from AllControllers
+	// This prevents the race condition where the scheduled backup fires after
+	// we've been removed, resulting in an empty session being saved
+	[[self class] saveSessionIncludingUntitledDocuments:YES];
+
 	self.documents           = nil;
 	self.selectedDocument    = nil;
 	self.fileBrowserVisible  = NO; // Make window frame small as we no longer respond to savableWindowFrame
