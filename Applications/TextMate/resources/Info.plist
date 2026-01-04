@@ -1744,6 +1744,27 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
+				<string>public.source-code</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Go source</string>
+			<key>UTTypeIconFile</key>
+			<string>Go</string>
+			<key>UTTypeIdentifier</key>
+			<string>org.golang.go</string>
+			<key>UTTypeReferenceURL</key>
+			<string>https://go.dev</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>go</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
 				<string>public.plain-text</string>
 			</array>
 			<key>UTTypeDescription</key>
@@ -2891,6 +2912,27 @@
 				</array>
 				<key>public.mime-type</key>
 				<string>text/ruby-script</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Rust source</string>
+			<key>UTTypeIconFile</key>
+			<string>Rust</string>
+			<key>UTTypeIdentifier</key>
+			<string>org.rust-lang.rust</string>
+			<key>UTTypeReferenceURL</key>
+			<string>https://www.rust-lang.org</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>rs</string>
+				</array>
 			</dict>
 		</dict>
 		<dict>

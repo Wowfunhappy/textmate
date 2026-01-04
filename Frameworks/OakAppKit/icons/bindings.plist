@@ -8,7 +8,7 @@
 	small-log                  = ( log );
 	small-angle_brackets_green = ( jsp, php, php3, php4, php5, phpt, phtml, aw, ctp );
 	small-angle_brackets_brown = ( dist, xml, tld, pt, cpt, dtml, rss, opml, xsl, xslt );
-	small-brackets             = ( m, mm, M );
+	small-brackets             = ( m, mm, M, rs );
 	small-braces               = ( go, sieve );
 	small-list                 = ( gtd, gtdlog, properties, json, strings, plist, dict, scriptsuite, scriptterminology, savedsearch, defs.rem, reminders, TODO, tasks, todolist, yaml, yml );
 	small-grid                 = ( css, css.erb, scss, sass, less, sql );

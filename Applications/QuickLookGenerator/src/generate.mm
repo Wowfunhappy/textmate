@@ -17,6 +17,9 @@
 
 OAK_EXTERN_C_BEGIN
 
+static NSBundle* parentBundle;
+static NSBundle* oakAppKitBundle;
+
 static void initialize (CFBundleRef generatorBundle)
 {
 	static dispatch_once_t onceToken;
@@ -24,7 +27,8 @@ static void initialize (CFBundleRef generatorBundle)
 		// Load settings
 		NSURL* bundleURL = (__bridge_transfer NSURL*)CFBundleCopyBundleURL(generatorBundle);
 		NSString* parentBundlePath = [[[[[[bundleURL filePathURL] path] stringByDeletingLastPathComponent] stringByDeletingLastPathComponent] stringByDeletingLastPathComponent] stringByDeletingLastPathComponent];
-		NSBundle* parentBundle = [NSBundle bundleWithPath:parentBundlePath];
+		parentBundle = [NSBundle bundleWithPath:parentBundlePath];
+		oakAppKitBundle = [NSBundle bundleWithPath:[parentBundlePath stringByAppendingPathComponent:@"Contents/Frameworks/OakAppKit.framework"]];
 
 		settings_t::set_default_settings_path([[parentBundle pathForResource:@"Default" ofType:@"tmProperties"] fileSystemRepresentation]);
 		settings_t::set_global_settings_path(path::join(path::home(), "Library/Application Support/TextMate/Global.tmProperties"));
@@ -40,6 +44,46 @@ static void initialize (CFBundleRef generatorBundle)
 		auto index = create_bundle_index(paths, cache);
 		bundles::set_index(index.first, index.second);
 	});
+}
+
+static NSImage* CustomIconForPath (NSString* path)
+{
+	static NSMutableDictionary* bindings = [NSMutableDictionary new];
+
+	static dispatch_once_t onceToken = 0;
+	dispatch_once(&onceToken, ^{
+		NSDictionary* map = [NSDictionary dictionaryWithContentsOfFile:[oakAppKitBundle pathForResource:@"bindings" ofType:@"plist"]];
+		for(NSString* key in map)
+		{
+			for(NSString* ext in map[key])
+				bindings[[ext lowercaseString]] = key;
+		}
+	});
+
+	NSString* pathName = [[path lastPathComponent] lowercaseString];
+	NSString* imageName = bindings[pathName];
+
+	NSRange range = [pathName rangeOfString:@"."];
+	if(range.location != NSNotFound)
+	{
+		imageName = bindings[[pathName substringFromIndex:NSMaxRange(range)]];
+		imageName = imageName ?: bindings[[pathName pathExtension]];
+	}
+
+	NSImage* res = nil;
+	if(imageName)
+	{
+		static NSMutableDictionary* images = [NSMutableDictionary new];
+		@synchronized(images) {
+			if(!(res = images[imageName]))
+			{
+				NSString* imagePath = [oakAppKitBundle pathForImageResource:imageName];
+				if(imagePath && (res = [[NSImage alloc] initWithContentsOfFile:imagePath]))
+					images[imageName] = res;
+			}
+		}
+	}
+	return res;
 }
 
 static std::string URLtoString (CFURLRef url)
