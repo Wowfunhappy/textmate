@@ -196,7 +196,6 @@ NSString* OakDocumentBookmarkIdentifier           = @"bookmark";
 @property (nonatomic) NSInteger revision;
 @property (nonatomic) NSInteger savedRevision;
 @property (nonatomic) NSInteger backupRevision;
-@property (nonatomic) BOOL observeFileSystem;
 @property (nonatomic) BOOL needsImportDocumentChanges;
 @property (nonatomic, readonly) BOOL shouldSniffFileType;
 
@@ -1618,6 +1617,8 @@ NSString* OakDocumentBookmarkIdentifier           = @"bookmark";
 
 	if(flag && _path)
 		_fileSystemObserver = std::make_unique<watch_t>(to_s(_path), self);
+	else
+		_needsImportDocumentChanges = NO;
 }
 
 - (void)fileSystemDidChangeToPath:(NSString*)newPath flags:(int)flags
@@ -1706,12 +1707,16 @@ NSString* OakDocumentBookmarkIdentifier           = @"bookmark";
 		void show_error (std::string const& path, std::string const& message, oak::uuid_t const& filter)
 		{
 			fprintf(stderr, "%s: %s\n", path.c_str(), message.c_str());
+			_run_loop.stop();
 		}
 
 		void show_content (std::string const& path, io::bytes_ptr content, std::map<std::string, std::string> const& attributes, encoding::type const& encoding, std::vector<oak::uuid_t> const& binaryImportFilters, std::vector<oak::uuid_t> const& textImportFilters)
 		{
 			if(!_self.isLoaded)
+			{
+				_run_loop.stop();
 				return;
+			}
 
 			ng::buffer_t& buffer = [_self buffer];
 

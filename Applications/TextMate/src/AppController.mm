@@ -672,7 +672,7 @@ BOOL HasDocumentWindow (NSArray* windows)
 
 - (IBAction)orderFrontAboutPanel:(id)sender
 {
-	[[AboutWindowController sharedInstance] showAboutWindow:self];
+	[NSApp orderFrontStandardAboutPanel:sender];
 }
 
 - (IBAction)orderFrontFindPanel:(id)sender

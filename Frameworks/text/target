@@ -3,4 +3,4 @@ SOURCES      = src/*.cc
 EXPORT       = src/*.h
 LINK        += crash
 FRAMEWORKS   = CoreFoundation
-LIBS         = iconv
+LIBS         = /opt/local/lib/libiconv.a

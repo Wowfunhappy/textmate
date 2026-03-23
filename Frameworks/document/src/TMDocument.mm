@@ -9,6 +9,7 @@ OAK_DEBUG_VAR(TMDocument);
 @interface TMDocument ()
 @property (nonatomic, readwrite) OakDocument* oakDocument;
 @property (nonatomic, readwrite) TMWindowController* tmWindowController;
+@property (nonatomic) BOOL reloading;
 @end
 
 @implementation TMDocument
@@ -102,6 +103,12 @@ OAK_DEBUG_VAR(TMDocument);
 
 		[oakDocument addObserver:self forKeyPath:@"path" options:NSKeyValueObservingOptionNew context:nullptr];
 
+		// NSDocument handles file change detection via NSFilePresenter (since
+		// autosavesInPlace is YES). Disable OakDocument's independent kqueue
+		// watcher to avoid two systems competing over the same file changes.
+		oakDocument.observeFileSystem = NO;
+		[oakDocument addObserver:self forKeyPath:@"observeFileSystem" options:0 context:nullptr];
+
 		// Register with NSDocumentController for autosaving to work
 		[[NSDocumentController sharedDocumentController] addDocument:self];
 	}
@@ -112,6 +119,7 @@ OAK_DEBUG_VAR(TMDocument);
 {
 	D(DBF_TMDocument, bug("unwrap %s\n", _oakDocument.displayName.UTF8String););
 	[[NSNotificationCenter defaultCenter] removeObserver:self];
+	[_oakDocument removeObserver:self forKeyPath:@"observeFileSystem"];
 	[_oakDocument removeObserver:self forKeyPath:@"path"];
 }
 
@@ -125,14 +133,23 @@ OAK_DEBUG_VAR(TMDocument);
 		self.fileURL = path ? [NSURL fileURLWithPath:path] : nil;
 		D(DBF_TMDocument, bug("path changed: %s\n", path.UTF8String););
 	}
+	else if([keyPath isEqualToString:@"observeFileSystem"])
+	{
+		if(self.oakDocument.observeFileSystem)
+		{
+			D(DBF_TMDocument, bug("%s suppressing OakDocument file watcher\n", self.oakDocument.displayName.UTF8String););
+			self.oakDocument.observeFileSystem = NO;
+		}
+	}
 }
 
 // MARK: - OakDocument Notification Handlers
 
 - (void)oakDocumentContentDidChange:(NSNotification*)notification
 {
-	D(DBF_TMDocument, bug("%s\n", self.oakDocument.displayName.UTF8String););
-	[self updateChangeCount:NSChangeDone];
+	D(DBF_TMDocument, bug("%s reloading=%d\n", self.oakDocument.displayName.UTF8String, _reloading););
+	if(!_reloading)
+		[self updateChangeCount:NSChangeDone];
 }
 
 - (void)oakDocumentDidSave:(NSNotification*)notification
@@ -159,6 +176,15 @@ OAK_DEBUG_VAR(TMDocument);
 - (NSString*)fileType
 {
 	return self.oakDocument.fileType ?: @"public.plain-text";
+}
+
+- (NSString*)fileNameExtensionForType:(NSString*)typeName saveOperation:(NSSaveOperationType)saveOperation
+{
+	// TextMate uses scope names (e.g., "source.ruby") as file types, not UTIs.
+	// Return the actual file extension so NSDocument's Versions system can
+	// create temporary files without crashing on nil extensions.
+	NSString* ext = self.fileURL.pathExtension;
+	return ext.length > 0 ? ext : @"txt";
 }
 
 - (BOOL)isDocumentEdited
@@ -220,22 +246,39 @@ OAK_DEBUG_VAR(TMDocument);
 
 - (BOOL)revertToContentsOfURL:(NSURL*)url ofType:(NSString*)typeName error:(NSError**)outError
 {
-	D(DBF_TMDocument, bug("%s url=%s\n", self.oakDocument.displayName.UTF8String, url.path.UTF8String););
+	NSLog(@"TMDocument revertToContentsOfURL: %@ (type: %@)", url, typeName);
 
 	NSData* data = [NSData dataWithContentsOfURL:url options:0 error:outError];
 	if(!data)
+	{
+		NSLog(@"TMDocument revertToContentsOfURL: failed to read data from %@", url);
 		return NO;
+	}
 
 	NSString* content = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
 	if(!content)
 	{
+		NSLog(@"TMDocument revertToContentsOfURL: failed to decode as UTF-8");
 		if(outError)
 			*outError = [NSError errorWithDomain:NSCocoaErrorDomain code:NSFileReadUnknownStringEncodingError userInfo:nil];
 		return NO;
 	}
 
-	self.oakDocument.content = content;
+	NSLog(@"TMDocument revertToContentsOfURL: loaded %lu bytes, setting content", (unsigned long)data.length);
+
+	OakDocument* oakDoc = self.oakDocument;
+
+	_reloading = YES;
+	[[NSNotificationCenter defaultCenter] postNotificationName:OakDocumentWillReloadNotification object:oakDoc];
+	[oakDoc beginUndoGrouping];
+	oakDoc.content = content;
+	[oakDoc endUndoGrouping];
+	[oakDoc markDocumentSaved];
+	[[NSNotificationCenter defaultCenter] postNotificationName:OakDocumentDidReloadNotification object:oakDoc];
+	_reloading = NO;
+
 	[self updateChangeCount:NSChangeCleared];
+	NSLog(@"TMDocument revertToContentsOfURL: done");
 	return YES;
 }
 

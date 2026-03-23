@@ -83,6 +83,7 @@ PUBLIC @interface OakDocument : NSObject
 @property (nonatomic, getter = isDocumentEdited, readonly) BOOL documentEdited;
 @property (nonatomic, getter = isRecentTrackingDisabled)   BOOL recentTrackingDisabled;
 @property (nonatomic)                                      BOOL keepBackupFile;
+@property (nonatomic)                                      BOOL observeFileSystem;
 
 // Storage for OakTextView
 @property (nonatomic) NSString* selection;
