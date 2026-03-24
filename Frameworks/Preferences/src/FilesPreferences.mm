@@ -17,7 +17,6 @@
 		[OakStringListTransformer createTransformerWithName:@"OakLineEndingsSettingsTransformer" andObjectsArray:@[ @"\\n", @"\\r", @"\\r\\n" ]];
 
 		self.defaultsProperties = @{
-			@"disableSessionRestore":         kUserDefaultsDisableSessionRestoreKey,
 			@"disableDocumentAtStartup":      kUserDefaultsDisableNewDocumentAtStartupKey,
 			@"disableDocumentAtReactivation": kUserDefaultsDisableNewDocumentAtReactivationKey,
 		};

@@ -422,7 +422,7 @@ class Buildfile
               sleep .2;
             done;
           fi;
-          open $in --args -disableSessionRestore NO;
+          open $in;
         } </dev/null &>/dev/null &
 SHELL
       'description' => 'Run ‘$in’…',

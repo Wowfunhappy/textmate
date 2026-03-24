@@ -10,7 +10,6 @@ PUBLIC void RegisterDefaults ();
 // = Files =
 // =========
 
-PUBLIC extern NSString* const kUserDefaultsDisableSessionRestoreKey;
 PUBLIC extern NSString* const kUserDefaultsDisableNewDocumentAtStartupKey;
 PUBLIC extern NSString* const kUserDefaultsDisableNewDocumentAtReactivationKey;
 PUBLIC extern NSString* const kUserDefaultsShowFavoritesInsteadOfUntitledKey;

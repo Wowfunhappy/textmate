@@ -633,17 +633,26 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 	}
 }
 
++ (BOOL)restoresSessionOnQuit
+{
+	// NSQuitAlwaysKeepsWindows: YES (or absent) = restore windows, NO = close windows
+	id value = [[NSUserDefaults standardUserDefaults] objectForKey:@"NSQuitAlwaysKeepsWindows"];
+	BOOL keepWindows = value ? [value boolValue] : YES;
+	BOOL optionHeld  = ([NSEvent modifierFlags] & NSEventModifierFlagOption) != 0;
+	return keepWindows ^ optionHeld;
+}
+
 + (void)saveSessionAndDetachBackups
 {
-	BOOL restoresSession = ![[NSUserDefaults standardUserDefaults] boolForKey:kUserDefaultsDisableSessionRestoreKey];
-	[DocumentWindowController saveSessionIncludingUntitledDocuments:restoresSession];
-	for(DocumentWindowController* controller in [SortedControllers() reverseObjectEnumerator])
+	BOOL restoresSession = [self restoresSessionOnQuit];
+	if(restoresSession)
 	{
-		[controller saveProjectState];
-
-		// Ensure we do not remove backup files, as they are used to restore untitled documents
-		if(restoresSession)
+		[DocumentWindowController saveSessionIncludingUntitledDocuments:YES];
+		for(DocumentWindowController* controller in [SortedControllers() reverseObjectEnumerator])
 		{
+			[controller saveProjectState];
+
+			// Ensure we do not remove backup files, as they are used to restore untitled documents
 			for(OakDocument* document in controller.documents)
 			{
 				NSString* backupPath = document.backupPath;
@@ -653,11 +662,18 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 			}
 		}
 	}
+	else
+	{
+		[self disableSessionSave];
+		[NSFileManager.defaultManager removeItemAtPath:[self sessionPath] error:nil];
+		for(DocumentWindowController* controller in [SortedControllers() reverseObjectEnumerator])
+			[controller saveProjectState];
+	}
 }
 
 - (NSArray<OakDocument*>*)documentsNeedingSaving
 {
-	BOOL restoresSession = ![[NSUserDefaults standardUserDefaults] boolForKey:kUserDefaultsDisableSessionRestoreKey];
+	BOOL restoresSession = [DocumentWindowController restoresSessionOnQuit];
 
 	NSMutableArray<OakDocument*>* res = [NSMutableArray array];
 	for(OakDocument* doc in _documents)
@@ -2594,7 +2610,9 @@ static NSUInteger DisableSessionSavingCount = 0;
 		[projects addObject:[controller sessionInfoIncludingUntitledDocuments:includeUntitled]];
 
 	NSDictionary* session = @{ @"projects": projects };
-	return [session writeToFile:[self sessionPath] atomically:YES];
+	NSString* sessionPath = [self sessionPath];
+	[NSFileManager.defaultManager createDirectoryAtPath:[sessionPath stringByDeletingLastPathComponent] withIntermediateDirectories:YES attributes:nil error:nil];
+	return [session writeToFile:sessionPath atomically:YES];
 }
 
 // ==========
