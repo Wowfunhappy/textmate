@@ -99,15 +99,10 @@ OAK_DEBUG_VAR(TMDocument);
 
 		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(oakDocumentContentDidChange:) name:OakDocumentContentDidChangeNotification object:oakDocument];
 		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(oakDocumentDidSave:) name:OakDocumentDidSaveNotification object:oakDocument];
+		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(oakDocumentDidReload:) name:OakDocumentDidReloadNotification object:oakDocument];
 		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(oakDocumentWillClose:) name:OakDocumentWillCloseNotification object:oakDocument];
 
 		[oakDocument addObserver:self forKeyPath:@"path" options:NSKeyValueObservingOptionNew context:nullptr];
-
-		// NSDocument handles file change detection via NSFilePresenter (since
-		// autosavesInPlace is YES). Disable OakDocument's independent kqueue
-		// watcher to avoid two systems competing over the same file changes.
-		oakDocument.observeFileSystem = NO;
-		[oakDocument addObserver:self forKeyPath:@"observeFileSystem" options:0 context:nullptr];
 
 		// Register with NSDocumentController for autosaving to work
 		[[NSDocumentController sharedDocumentController] addDocument:self];
@@ -119,7 +114,6 @@ OAK_DEBUG_VAR(TMDocument);
 {
 	D(DBF_TMDocument, bug("unwrap %s\n", _oakDocument.displayName.UTF8String););
 	[[NSNotificationCenter defaultCenter] removeObserver:self];
-	[_oakDocument removeObserver:self forKeyPath:@"observeFileSystem"];
 	[_oakDocument removeObserver:self forKeyPath:@"path"];
 }
 
@@ -132,14 +126,6 @@ OAK_DEBUG_VAR(TMDocument);
 		NSString* path = self.oakDocument.path;
 		self.fileURL = path ? [NSURL fileURLWithPath:path] : nil;
 		D(DBF_TMDocument, bug("path changed: %s\n", path.UTF8String););
-	}
-	else if([keyPath isEqualToString:@"observeFileSystem"])
-	{
-		if(self.oakDocument.observeFileSystem)
-		{
-			D(DBF_TMDocument, bug("%s suppressing OakDocument file watcher\n", self.oakDocument.displayName.UTF8String););
-			self.oakDocument.observeFileSystem = NO;
-		}
 	}
 }
 
@@ -156,6 +142,23 @@ OAK_DEBUG_VAR(TMDocument);
 {
 	D(DBF_TMDocument, bug("%s\n", self.oakDocument.displayName.UTF8String););
 	[self updateChangeCount:NSChangeCleared];
+}
+
+- (void)oakDocumentDidReload:(NSNotification*)notification
+{
+	D(DBF_TMDocument, bug("%s\n", self.oakDocument.displayName.UTF8String););
+	// OakDocument's kqueue watcher detected an external change and reloaded
+	// the content. Update NSDocument's modification date so it doesn't think
+	// there's a conflict when it next tries to save.
+	if(self.fileURL)
+	{
+		NSDate* modDate = nil;
+		[self.fileURL getResourceValue:&modDate forKey:NSURLContentModificationDateKey error:nil];
+		if(modDate)
+			self.fileModificationDate = modDate;
+	}
+	if(!self.oakDocument.isDocumentEdited)
+		[self updateChangeCount:NSChangeCleared];
 }
 
 - (void)oakDocumentWillClose:(NSNotification*)notification
@@ -243,19 +246,22 @@ OAK_DEBUG_VAR(TMDocument);
 {
 	D(DBF_TMDocument, bug("%s url=%s type=%s op=%ld\n", self.oakDocument.displayName.UTF8String, url.path.UTF8String, typeName.UTF8String, (long)saveOperation););
 
-	// Let NSDocument handle the save through its normal pipeline (which manages Versions)
-	// NSDocument will call our dataOfType:error: to get the content
-	OakDocument* __weak weakOakDoc = self.oakDocument;
+	// Temporarily disable OakDocument's kqueue watcher so it doesn't
+	// interpret our own save as an external change
+	OakDocument* oakDoc = self.oakDocument;
+	BOOL wasObserving = oakDoc.observeFileSystem;
+	oakDoc.observeFileSystem = NO;
+
+	OakDocument* __weak weakOakDoc = oakDoc;
 	[super saveToURL:url ofType:typeName forSaveOperation:saveOperation completionHandler:^(NSError* errorOrNil){
+		OakDocument* strongOakDoc = weakOakDoc;
 		if(!errorOrNil && saveOperation != NSAutosaveElsewhereOperation)
 		{
-			// Sync OakDocument's saved state after successful save
-			// Don't mark saved for draft autosaves — those preserve unsaved content
-			// but shouldn't clear the document's dirty state
-			OakDocument* oakDoc = weakOakDoc;
-			if(oakDoc && oakDoc.isLoaded)
-				[oakDoc markDocumentSaved];
+			if(strongOakDoc && strongOakDoc.isLoaded)
+				[strongOakDoc markDocumentSaved];
 		}
+		if(strongOakDoc && wasObserving)
+			strongOakDoc.observeFileSystem = YES;
 		completionHandler(errorOrNil);
 	}];
 }
