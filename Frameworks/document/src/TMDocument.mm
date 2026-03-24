@@ -199,6 +199,23 @@ OAK_DEBUG_VAR(TMDocument);
 	return self.oakDocument.isDocumentEdited || [super hasUnautosavedChanges];
 }
 
+- (void)canCloseDocumentWithDelegate:(id)delegate shouldCloseSelector:(SEL)shouldCloseSelector contextInfo:(void*)contextInfo
+{
+	// Bypass NSDocument's close confirmation — DocumentWindowController handles this
+	if(delegate && shouldCloseSelector)
+	{
+		BOOL shouldClose = YES;
+		void* document = (__bridge void*)self;
+		NSInvocation* invocation = [NSInvocation invocationWithMethodSignature:[delegate methodSignatureForSelector:shouldCloseSelector]];
+		invocation.target = delegate;
+		invocation.selector = shouldCloseSelector;
+		[invocation setArgument:&document atIndex:2];
+		[invocation setArgument:&shouldClose atIndex:3];
+		[invocation setArgument:&contextInfo atIndex:4];
+		[invocation invoke];
+	}
+}
+
 // MARK: - Data Read/Write
 
 - (NSData*)dataOfType:(NSString*)typeName error:(NSError**)outError
@@ -230,10 +247,11 @@ OAK_DEBUG_VAR(TMDocument);
 	// NSDocument will call our dataOfType:error: to get the content
 	OakDocument* __weak weakOakDoc = self.oakDocument;
 	[super saveToURL:url ofType:typeName forSaveOperation:saveOperation completionHandler:^(NSError* errorOrNil){
-		if(!errorOrNil)
+		if(!errorOrNil && saveOperation != NSAutosaveElsewhereOperation)
 		{
 			// Sync OakDocument's saved state after successful save
-			// Use weak reference to avoid crash if document was closed during async save
+			// Don't mark saved for draft autosaves — those preserve unsaved content
+			// but shouldn't clear the document's dirty state
 			OakDocument* oakDoc = weakOakDoc;
 			if(oakDoc && oakDoc.isLoaded)
 				[oakDoc markDocumentSaved];
