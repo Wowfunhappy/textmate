@@ -362,9 +362,15 @@ static CGFloat const kShadowPadding = 4.0;
 
 - (void)dealloc
 {
+	[_textFinder removeObserver:self forKeyPath:@"incrementalMatchRanges"];
+	_textFinder.client = nil;
+	_textFinder.findBarContainer = nil;
+	_textView.textFinder = nil;
+
 	for(NSString* keyPath in self.observedKeys)
 		[_textView removeObserver:self forKeyPath:keyPath];
 	[[NSNotificationCenter defaultCenter] removeObserver:self];
+	[NSObject cancelPreviousPerformRequestsWithTarget:gutterView];
 
 	self.document = nil;
 	self.symbolChooser = nil;
@@ -410,8 +416,9 @@ static CGFloat const kShadowPadding = 4.0;
 	// We brute-force it with multiple delayed attempts. Redundant calls are
 	// harmless — if the gutter is already aligned, resync is a no-op.
 	[gutterView resyncWithPartnerView];
+	GutterView* gutter = gutterView;
 	dispatch_async(dispatch_get_main_queue(), ^{
-		[gutterView resyncWithPartnerView];
+		[gutter resyncWithPartnerView];
 	});
 	[gutterView performSelector:@selector(resyncWithPartnerView) withObject:nil afterDelay:0.05];
 	[gutterView performSelector:@selector(resyncWithPartnerView) withObject:nil afterDelay:0.2];
@@ -527,10 +534,15 @@ static CGFloat const kShadowPadding = 4.0;
 	// with a delay to ensure the clip view frame is finalized
 	if([[notification name] isEqualToString:NSViewFrameDidChangeNotification])
 	{
+		__weak OakDocumentView* weakSelf = self;
+		GutterView* gutter = gutterView;
 		dispatch_async(dispatch_get_main_queue(), ^{
-			[gutterView resyncWithPartnerView];
-			[_textView recomputeFindMatchRects];
-			[self updateFindHighlightWindow];
+			if(OakDocumentView* strongSelf = weakSelf)
+			{
+				[gutter resyncWithPartnerView];
+				[strongSelf->_textView recomputeFindMatchRects];
+				[strongSelf updateFindHighlightWindow];
+			}
 		});
 	}
 }
@@ -541,8 +553,9 @@ static CGFloat const kShadowPadding = 4.0;
 	[_textFinder performAction:(NSTextFinderAction)tag];
 
 	// Re-sync gutter when find bar opens/closes (changes clip view frame)
+	GutterView* gutter = gutterView;
 	dispatch_async(dispatch_get_main_queue(), ^{
-		[gutterView resyncWithPartnerView];
+		[gutter resyncWithPartnerView];
 	});
 }
 
