@@ -330,6 +330,17 @@ NSString* OakDocumentBookmarkIdentifier           = @"bookmark";
 		[someData enumerateByteRangesUsingBlock:^(void const* buf, NSRange range, BOOL*){
 			_buffer->insert(range.location, (char const*)buf, range.length);
 		}];
+
+		[self setBufferGrammarForCurrentFileType];
+		[self updateSpellingSettings:YES andIndentSettings:YES];
+
+		_undoManager = std::make_unique<ng::undo_manager_t>(*_buffer);
+		_buffer->set_async_parsing(true);
+		_buffer->bump_revision();
+
+		self.revision = _buffer->revision();
+		self.loaded   = YES;
+		_savedRevision = _revision - 1;
 	}
 	return self;
 }

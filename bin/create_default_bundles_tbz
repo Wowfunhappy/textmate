@@ -20,6 +20,8 @@ bl="$builddir/Applications/bl/bl"
 		"Bundle Support" \
 		C \
 		CSS \
+		Git \
+		Go \
 		HTML \
 		"Hyperlink Helper" \
 		JSON \
@@ -32,11 +34,11 @@ bl="$builddir/Applications/bl/bl"
 		"Property List" \
 		Python \
 		Ruby \
+		Rust \
 		SCM \
 		"SCM Diff Gutter" \
 		"Shell Script" \
 		Source \
-		SQL \
 		Text \
 		Themes \
 		XML \

@@ -198,6 +198,10 @@ BOOL HasDocumentWindow (NSArray* windows)
 		},
 		{ @"View",
 			.submenu = {
+				{ @"Show Tab Bar",           @selector(toggleTabBar:)                 },
+				{ @"Show File Browser",      @selector(toggleFileBrowser:),    @"d", .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagOption|NSEventModifierFlagControl },
+				{ @"Show Line Numbers",      @selector(toggleLineNumbers:),    @"l", .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagOption },
+				{ /* -------- */ },
 				{ @"Font",
 					.systemMenu = MBMenuTypeFont, .submenu = {
 						{ @"Show Fonts",   @selector(orderFrontFontPanel:),      .target = NSFontManager.sharedFontManager },
@@ -207,10 +211,6 @@ BOOL HasDocumentWindow (NSArray* windows)
 						{ @"Default Size", @selector(makeTextStandardSize:), @"0" },
 					}
 				},
-				{ @"Show Tab Bar",           @selector(toggleTabBar:)                 },
-				{ @"Show File Browser",      @selector(toggleFileBrowser:),    @"d", .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagOption|NSEventModifierFlagControl },
-				{ @"Show Line Numbers",      @selector(toggleLineNumbers:),    @"l", .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagOption },
-				{ /* -------- */ },
 				{ @"Show Invisibles",        @selector(toggleShowInvisibles:), @"i", .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagOption },
 				{ /* -------- */ },
 				{ @"Enable Soft Wrap",       @selector(toggleSoftWrap:),       @"w", .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagOption },
