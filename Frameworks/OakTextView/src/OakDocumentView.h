@@ -16,4 +16,5 @@ PUBLIC @interface OakDocumentView : NSView
 - (void)removeAuxiliaryView:(NSView*)aView;
 
 - (IBAction)showSymbolChooser:(id)sender;
+- (void)performFindPanelAction:(id)sender;
 @end

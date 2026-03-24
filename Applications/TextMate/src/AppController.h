@@ -2,7 +2,6 @@
 {
 	NSMenu* bundlesMenu;
 	NSMenu* themesMenu;
-	NSMenu* spellingMenu;
 	NSMenu* wrapColumnMenu;
 
 	IBOutlet NSPanel* goToLinePanel;
@@ -31,7 +30,6 @@
 - (IBAction)newDocumentAndActivate:(id)sender;
 - (IBAction)openDocumentAndActivate:(id)sender;
 
-- (IBAction)runPageLayout:(id)sender;
 - (IBAction)openFavorites:(id)sender;
 @end
 

@@ -160,6 +160,7 @@ struct data_source_t
 	if(_partnerView = aView)
 	{
 		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(boundsDidChange:) name:NSViewBoundsDidChangeNotification object:[[_partnerView enclosingScrollView] contentView]];
+		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(boundsDidChange:) name:NSViewFrameDidChangeNotification object:[[_partnerView enclosingScrollView] contentView]];
 		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(boundsDidChange:) name:NSViewFrameDidChangeNotification object:_partnerView];
 	}
 }
@@ -250,7 +251,17 @@ struct data_source_t
 - (void)boundsDidChange:(NSNotification*)aNotification
 {
 	[self updateSize];
-	[self.enclosingScrollView.contentView scrollToPoint:NSMakePoint(0, NSMinY(_partnerView.enclosingScrollView.contentView.bounds))];
+	// Account for find bar offset: the text clip view frame may start below the find bar,
+	// while the gutter clip view starts at y=0. Adjust scroll position to align.
+	CGFloat textClipFrameY = _partnerView.enclosingScrollView.contentView.frame.origin.y;
+	CGFloat gutterClipFrameY = self.enclosingScrollView.contentView.frame.origin.y;
+	CGFloat offset = textClipFrameY - gutterClipFrameY;
+	[self.enclosingScrollView.contentView scrollToPoint:NSMakePoint(0, NSMinY(_partnerView.enclosingScrollView.contentView.bounds) - offset)];
+}
+
+- (void)resyncWithPartnerView
+{
+	[self boundsDidChange:nil];
 }
 
 - (void)setSize:(NSSize)newSize

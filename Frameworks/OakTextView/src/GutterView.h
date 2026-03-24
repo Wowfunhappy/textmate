@@ -52,4 +52,5 @@ typedef NS_ENUM(NSUInteger, GutterViewRowState) {
 - (void)insertColumnWithIdentifier:(NSString*)columnIdentifier atPosition:(NSUInteger)index dataSource:(id <GutterViewColumnDataSource>)columnDataSource delegate:(id <GutterViewColumnDelegate>)columnDelegate;
 - (void)setVisibility:(BOOL)visible forColumnWithIdentifier:(NSString*)columnIdentifier;
 - (BOOL)visibilityForColumnWithIdentifier:(NSString*)identifier;
+- (void)resyncWithPartnerView;
 @end

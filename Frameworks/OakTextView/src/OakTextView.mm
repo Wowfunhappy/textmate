@@ -521,6 +521,7 @@ private:
 	// =================
 
 	links_ptr _links;
+	std::vector<NSRect> _findMatchRects;
 }
 - (void)ensureSelectionIsInVisibleArea:(id)sender;
 - (void)updateChoiceMenu:(id)sender;
@@ -620,6 +621,8 @@ struct refresh_helper_t
 
 				if(_revision != documentView->revision() || _selection != documentView->ranges())
 				{
+					if(_revision != documentView->revision())
+						[_self.textFinder noteClientStringWillChange];
 					[_self updateMarkedRanges];
 					[_self updateSelection];
 					[_self updateSymbol];
@@ -1206,6 +1209,61 @@ doScroll:
 	};
 
 	documentView->draw(ng::context_t(context, _showInvisibles ? documentView->invisibles_map : NULL_STR, [spellingDotImage CGImageForProposedRect:NULL context:[NSGraphicsContext currentContext] hints:nil], foldingDotsFactory), aRect, [self isFlipped], merge(documentView->ranges(), [self markedRanges]), _liveSearchRanges);
+
+}
+
+- (void)recomputeFindMatchRects
+{
+	_findMatchRects.clear();
+
+	if(!documentView || !_textFinder)
+		return;
+
+	// Use NSTextFinder's own match ranges — it already performed the search
+	// with the correct options, patterns, case sensitivity, etc.
+	NSArray* matchRanges = [_textFinder incrementalMatchRanges];
+	for(NSValue* value in matchRanges)
+	{
+		NSRange range = [value rangeValue];
+		ng::range_t r = [self rangeForNSRange:range];
+		NSRect rect = documentView->rect_for_range(r.min().index, r.max().index, true);
+		_findMatchRects.push_back(rect);
+	}
+}
+
+- (std::vector<NSRect> const&)findMatchRects
+{
+	return _findMatchRects;
+}
+
+- (void)drawCharactersInRange:(NSRange)range forContentView:(NSView*)view
+{
+	if(!documentView || !self.theme)
+		return;
+
+	ng::range_t r = [self rangeForNSRange:range];
+	NSRect rect = documentView->rect_for_range(r.min().index, r.max().index, true);
+	std::string text = documentView->substr(r.min().index, r.max().index);
+
+	NSFont* font = self.font ?: [NSFont userFixedPitchFontOfSize:12];
+	NSDictionary* attrs = @{
+		NSFontAttributeName:            font,
+		NSForegroundColorAttributeName: [NSColor blackColor],
+	};
+	// Offset y by font leading to match OakTextView's baseline positioning
+	NSPoint drawPoint = rect.origin;
+	drawPoint.y += font.descender - 1;
+	[[NSString stringWithCxxString:text] drawAtPoint:drawPoint withAttributes:attrs];
+}
+
+- (NSArray*)rectsForCharacterRange:(NSRange)range
+{
+	if(!documentView || range.length == 0)
+		return @[];
+
+	ng::range_t r = [self rangeForNSRange:range];
+	NSRect rect = documentView->rect_for_range(r.min().index, r.max().index, true);
+	return @[[NSValue valueWithRect:rect]];
 }
 
 // =====================
@@ -2572,6 +2630,88 @@ static void update_menu_key_equivalents (NSMenu* menu, std::multimap<std::string
 	}
 }
 
+// ====================
+// = NSTextFinderClient =
+// ====================
+
+- (NSString*)stringAtIndex:(NSUInteger)characterIndex effectiveRange:(NSRangePointer)outRange endsWithSearchBoundary:(BOOL*)outFlag
+{
+	if(!documentView)
+	{
+		if(outRange)
+			*outRange = NSMakeRange(0, 0);
+		if(outFlag)
+			*outFlag = YES;
+		return @"";
+	}
+
+	NSString* str = [NSString stringWithCxxString:documentView->substr()];
+	if(outRange)
+		*outRange = NSMakeRange(0, str.length);
+	if(outFlag)
+		*outFlag = YES;
+	return str;
+}
+
+- (NSUInteger)stringLength
+{
+	if(!documentView)
+		return 0;
+	return [self nsRangeForRange:ng::range_t(0, documentView->size())].length;
+}
+
+- (NSRange)firstSelectedRange
+{
+	if(!documentView)
+		return NSMakeRange(0, 0);
+	return [self nsRangeForRange:documentView->ranges().last()];
+}
+
+- (void)scrollRangeToVisible:(NSRange)range
+{
+	if(!documentView)
+		return;
+	ng::range_t r = [self rangeForNSRange:range];
+	// Set the selection to the match so firstSelectedRange advances for Find Next
+	AUTO_REFRESH;
+	documentView->set_ranges(r);
+	NSRect rect = documentView->rect_for_range(r.min().index, r.max().index, true);
+	[self scrollRectToVisible:rect];
+}
+
+- (NSView*)contentViewAtIndex:(NSUInteger)index effectiveCharacterRange:(NSRangePointer)outRange
+{
+	if(outRange)
+		*outRange = NSMakeRange(0, [self stringLength]);
+	return self;
+}
+
+- (BOOL)isEditable
+{
+	return YES;
+}
+
+- (BOOL)shouldReplaceCharactersInRanges:(NSArray*)ranges withStrings:(NSArray*)strings
+{
+	return YES;
+}
+
+- (void)replaceCharactersInRange:(NSRange)range withString:(NSString*)string
+{
+	if(!documentView)
+		return;
+
+	AUTO_REFRESH;
+	ng::range_t r = [self rangeForNSRange:range];
+	documentView->set_ranges(r);
+	documentView->insert(to_s(string));
+}
+
+- (void)didReplaceCharacters
+{
+	// Content already updated in replaceCharactersInRange:withString:
+}
+
 // =========================
 // = Find Protocol: Client =
 // =========================
@@ -3616,7 +3756,7 @@ static char const* kOakMenuItemTitle = "OakMenuItemTitle";
 
 - (NSString*)string
 {
-	// This is used by the Emmet plug-in (with no “respondsToSelector:” check)
+	// Used by NSTextFinderClient and the Emmet plug-in
 	return [NSString stringWithCxxString:documentView->substr()];
 }
 

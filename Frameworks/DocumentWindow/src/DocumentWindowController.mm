@@ -1998,19 +1998,22 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 
 - (IBAction)orderFrontFindPanel:(id)sender
 {
+	NSInteger mode = [sender respondsToSelector:@selector(tag)] ? [sender tag] : find_tags::in_document;
+
+	// Document-level find uses the standard NSTextFinder find bar
+	if(mode == find_tags::in_document || mode == find_tags::in_selection)
+	{
+		[self.documentView performFindPanelAction:sender];
+		return;
+	}
+
 	Find* find              = [Find sharedInstance];
 	BOOL didOwnDialog       = [find.projectIdentifier isEqual:self.identifier];
 	[self prepareAndReturnFindPanel];
 
-	NSInteger mode = [sender respondsToSelector:@selector(tag)] ? [sender tag] : find_tags::in_document;
-	if(mode == find_tags::in_document && ![[NSUserDefaults standardUserDefaults] boolForKey:kUserDefaultsAlwaysFindInDocument] && [self.window isKeyWindow] && self.textView.hasMultiLineSelection)
-		mode = find_tags::in_selection;
-
 	switch(mode)
 	{
-		case find_tags::in_document:  find.searchTarget = FFSearchTargetDocument;  break;
-		case find_tags::in_selection: find.searchTarget = FFSearchTargetSelection; break;
-		case find_tags::in_folder:    return [find showFolderSelectionPanel:self]; break;
+		case find_tags::in_folder: return [find showFolderSelectionPanel:self]; break;
 
 		case find_tags::in_project:
 		{

@@ -28,8 +28,11 @@ enum OTVFontSmoothing : NSUInteger
 - (std::map<std::string, std::string>)variables;
 @end
 
-PUBLIC @interface OakTextView : OakView <NSAccessibilityNavigableStaticText>
+PUBLIC @interface OakTextView : OakView <NSAccessibilityNavigableStaticText, NSTextFinderClient>
 @property (nonatomic) OakDocument* document;
+@property (nonatomic, weak) NSTextFinder*                    textFinder;
+@property (nonatomic, readonly) std::vector<NSRect> const&   findMatchRects;
+- (void)recomputeFindMatchRects;
 
 @property (nonatomic, weak) id <OakTextViewDelegate>        delegate;
 @property (nonatomic) theme_ptr                             theme;

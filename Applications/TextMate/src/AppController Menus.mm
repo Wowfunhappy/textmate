@@ -16,19 +16,6 @@
 
 OAK_DEBUG_VAR(AppController_Menus);
 
-static NSString* NameForLocaleIdentifier (NSString* languageCode)
-{
-	NSString* localLanguage = nil;
-	if(CFLocaleRef locale = CFLocaleCreate(kCFAllocatorDefault, (__bridge CFStringRef)languageCode))
-	{
-		localLanguage = [(NSString*)CFBridgingRelease(CFLocaleCopyDisplayNameForPropertyValue(locale, kCFLocaleIdentifier, (__bridge CFStringRef)languageCode)) capitalizedString];
-		CFRelease(locale);
-	}
-
-	NSString* systemLangauge = [(NSString*)CFBridgingRelease(CFLocaleCopyDisplayNameForPropertyValue(CFLocaleGetSystem(), kCFLocaleIdentifier, (__bridge CFStringRef)languageCode)) capitalizedString];
-	return localLanguage ?: systemLangauge ?: languageCode;
-}
-
 @implementation AppController (BundlesMenu)
 - (BOOL)menuHasKeyEquivalent:(NSMenu*)aMenu forEvent:(NSEvent*)theEvent target:(id*)aTarget action:(SEL*)anAction
 {
@@ -96,36 +83,6 @@ static NSString* NameForLocaleIdentifier (NSString* languageCode)
 		[aMenu addItemWithTitle:@"No Themes Loaded" action:@selector(nop:) keyEquivalent:@""];
 }
 
-- (void)spellingMenuNeedsUpdate:(NSMenu*)aMenu
-{
-	D(DBF_AppController_Menus, bug("\n"););
-
-	for(NSInteger i = aMenu.numberOfItems; i--; )
-	{
-		NSMenuItem* item = [aMenu itemAtIndex:i];
-		if([item action] == @selector(takeSpellingLanguageFrom:))
-			[aMenu removeItemAtIndex:i];
-	}
-
-	std::multimap<std::string, NSString*, text::less_t> ordered;
-
-	NSSpellChecker* spellChecker = [NSSpellChecker sharedSpellChecker];
-	for(NSString* lang in [spellChecker availableLanguages])
-		ordered.emplace(to_s(NameForLocaleIdentifier(lang)), lang);
-
-	NSString* systemSpellingLanguage = [spellChecker automaticallyIdentifiesLanguages] ? @"Automatic by Language" : NameForLocaleIdentifier([spellChecker language]);
-	NSMenuItem* menuItem = [aMenu addItemWithTitle:[NSString stringWithFormat:@"System (%@)", systemSpellingLanguage] action:@selector(takeSpellingLanguageFrom:) keyEquivalent:@""];
-	menuItem.representedObject = @"";
-
-	for(auto const& it : ordered)
-	{
-		D(DBF_AppController_Menus, bug("Add Item: %s\n", it.first.c_str()););
-		NSMenuItem* menuItem = [aMenu addItemWithTitle:[NSString stringWithCxxString:it.first] action:@selector(takeSpellingLanguageFrom:) keyEquivalent:@""];
-		D(DBF_AppController_Menus, bug("Represented Object: %s\n", [it.second UTF8String]););
-		menuItem.representedObject = it.second;
-	}
-}
-
 - (void)wrapColumnMenuNeedsUpdate:(NSMenu*)aMenu
 {
 	D(DBF_AppController_Menus, bug("\n"););
@@ -156,8 +113,6 @@ static NSString* NameForLocaleIdentifier (NSString* languageCode)
 		[self bundlesMenuNeedsUpdate:aMenu];
 	else if(aMenu == themesMenu)
 		[self themesMenuNeedsUpdate:aMenu];
-	else if(aMenu == spellingMenu)
-		[self spellingMenuNeedsUpdate:aMenu];
 	else if(aMenu == wrapColumnMenu)
 		[self wrapColumnMenuNeedsUpdate:aMenu];
 }

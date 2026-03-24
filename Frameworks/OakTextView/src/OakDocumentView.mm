@@ -1,5 +1,7 @@
 #import "OakDocumentView.h"
 #import "GutterView.h"
+#import <QuartzCore/QuartzCore.h>
+#import <objc/runtime.h>
 #import "OTVStatusBar.h"
 #import <document/OakDocument.h>
 #import <file/type.h>
@@ -27,6 +29,49 @@ static NSString* const kUserDefaultsLineNumberFontNameKey    = @"lineNumberFontN
 static NSString* const kBookmarksColumnIdentifier = @"bookmarks";
 static NSString* const kFoldingsColumnIdentifier  = @"foldings";
 
+// ========================
+// = Find Cutout View =
+// ========================
+
+@interface OakFindCutoutView : NSView
++ (CGFloat)shadowPadding;
+@end
+
+@implementation OakFindCutoutView
+
+static CGFloat const kShadowPadding = 4.0;
+
++ (CGFloat)shadowPadding { return kShadowPadding; }
+
+- (void)drawRect:(NSRect)dirtyRect
+{
+	// The view is sized with extra padding for the shadow.
+	// The actual hole is the bounds inset by the padding.
+	NSRect holeRect = NSInsetRect(self.bounds, kShadowPadding, kShadowPadding);
+
+	// Draw shadow into the padding area (bleeds into the dimming)
+	[NSGraphicsContext saveGraphicsState];
+	NSShadow* shadow = [[NSShadow alloc] init];
+	[shadow setShadowOffset:NSZeroSize];
+	[shadow setShadowBlurRadius:3.0];
+	[shadow setShadowColor:[NSColor colorWithCalibratedWhite:0.0 alpha:0.5]];
+	[shadow set];
+	[[NSColor whiteColor] set];
+	NSRectFill(holeRect);
+	[NSGraphicsContext restoreGraphicsState];
+
+	// Punch the hole (only the inner rect, preserving shadow in padding)
+	[[NSColor clearColor] set];
+	NSRectFillUsingOperation(holeRect, NSCompositeCopy);
+
+	// White semi-transparent outline for visibility on dark themes
+	[[NSColor colorWithCalibratedWhite:1.0 alpha:0.4] set];
+	NSFrameRectWithWidth(holeRect, 1.0);
+}
+@end
+
+// =============================
+
 @interface OakDocumentView () <NSAccessibilityGroup, GutterViewDelegate, GutterViewColumnDataSource, GutterViewColumnDelegate, OTVStatusBarDelegate>
 {
 	OBJC_WATCH_LEAKS(OakDocumentView);
@@ -46,6 +91,7 @@ static NSString* const kFoldingsColumnIdentifier  = @"foldings";
 	IBOutlet NSPanel* tabSizeSelectorPanel;
 }
 @property (nonatomic, readonly) OTVStatusBar* statusBar;
+@property (nonatomic) NSTextFinder* textFinder;
 @property (nonatomic) SymbolChooser* symbolChooser;
 @property (nonatomic) NSArray* observedKeys;
 - (void)updateStyle;
@@ -73,6 +119,23 @@ static NSString* const kFoldingsColumnIdentifier  = @"foldings";
 		textScrollView.autohidesScrollers       = YES;
 		textScrollView.borderType               = NSNoBorder;
 		textScrollView.documentView             = _textView;
+
+		_textFinder = [[NSTextFinder alloc] init];
+		_textFinder.client = _textView;
+		_textFinder.findBarContainer = textScrollView;
+		_textFinder.incrementalSearchingEnabled = YES;
+		_textFinder.incrementalSearchingShouldDimContentView = YES;
+		_textView.textFinder = _textFinder;
+
+		// Observe NSTextFinder's match ranges (KVO-observable) for our custom highlights
+		[_textFinder addObserver:self forKeyPath:@"incrementalMatchRanges" options:0 context:NULL];
+
+		// Observe scroll and resize changes to update cutout positions and gutter sync
+		textScrollView.contentView.postsBoundsChangedNotifications = YES;
+		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(scrollViewDidScroll:) name:NSViewBoundsDidChangeNotification object:textScrollView.contentView];
+		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(scrollViewDidScroll:) name:NSViewFrameDidChangeNotification object:textScrollView.contentView];
+		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(scrollViewDidScroll:) name:NSViewFrameDidChangeNotification object:textScrollView];
+		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(scrollViewDidScroll:) name:NSViewFrameDidChangeNotification object:_textView];
 
 		gutterView = [[GutterView alloc] initWithFrame:NSZeroRect];
 		gutterView.partnerView = _textView;
@@ -290,6 +353,11 @@ static NSString* const kFoldingsColumnIdentifier  = @"foldings";
 	{
 		_statusBar.softTabs = self.document.softTabs;
 	}
+	else if([aKeyPath isEqualToString:@"incrementalMatchRanges"])
+	{
+		[_textView recomputeFindMatchRects];
+		[self updateFindHighlightWindow];
+	}
 }
 
 - (void)dealloc
@@ -327,6 +395,26 @@ static NSString* const kFoldingsColumnIdentifier  = @"foldings";
 	[_textView setDocument:self.document];
 	[gutterView reloadData:self];
 	[self updateStyle];
+
+	// Notify NSTextFinder that the content has changed (tab switch)
+	[_textFinder noteClientStringWillChange];
+	if([_textFinder respondsToSelector:@selector(_clearContentString)])
+		[_textFinder performSelector:@selector(_clearContentString)];
+	[_textFinder cancelFindIndicator];
+	[_textView recomputeFindMatchRects];
+	[self updateFindHighlightWindow];
+
+	// HACK: Re-sync gutter with find bar offset. On tab switch, the clip view
+	// frame may not be finalized until well after setDocument: returns. A single
+	// dispatch_async is not reliable (especially on first switch after launch).
+	// We brute-force it with multiple delayed attempts. Redundant calls are
+	// harmless — if the gutter is already aligned, resync is a no-op.
+	[gutterView resyncWithPartnerView];
+	dispatch_async(dispatch_get_main_queue(), ^{
+		[gutterView resyncWithPartnerView];
+	});
+	[gutterView performSelector:@selector(resyncWithPartnerView) withObject:nil afterDelay:0.05];
+	[gutterView performSelector:@selector(resyncWithPartnerView) withObject:nil afterDelay:0.2];
 
 	if(_symbolChooser)
 	{
@@ -394,6 +482,10 @@ static NSString* const kFoldingsColumnIdentifier  = @"foldings";
 {
 	if(bundles::item_ptr const& themeItem = bundles::lookup(to_s(themeUUID)))
 	{
+		// Close find bar before theme change (NSTextFinder breaks on theme switch)
+		if(textScrollView.isFindBarVisible)
+			[_textFinder performAction:NSTextFinderActionHideFindInterface];
+
 		_textView.theme = parse_theme(themeItem);
 		settings_t::set(kSettingsThemeKey, to_s(themeUUID));
 		[self updateStyle];
@@ -426,9 +518,101 @@ static NSString* const kFoldingsColumnIdentifier  = @"foldings";
 	else	[[NSUserDefaults standardUserDefaults] setObject:@YES forKey:@"DocumentView Disable Line Numbers"];
 }
 
+- (void)scrollViewDidScroll:(NSNotification*)notification
+{
+	[_textView recomputeFindMatchRects];
+	[self updateFindHighlightWindow];
+
+	// When the find bar height changes (e.g. Replace toggled), resync gutter
+	// with a delay to ensure the clip view frame is finalized
+	if([[notification name] isEqualToString:NSViewFrameDidChangeNotification])
+	{
+		dispatch_async(dispatch_get_main_queue(), ^{
+			[gutterView resyncWithPartnerView];
+			[_textView recomputeFindMatchRects];
+			[self updateFindHighlightWindow];
+		});
+	}
+}
+
+- (void)performFindPanelAction:(id)sender
+{
+	NSInteger tag = [sender tag];
+	[_textFinder performAction:(NSTextFinderAction)tag];
+
+	// Re-sync gutter when find bar opens/closes (changes clip view frame)
+	dispatch_async(dispatch_get_main_queue(), ^{
+		[gutterView resyncWithPartnerView];
+	});
+}
+
+- (void)updateFindHighlightWindow
+{
+	auto const& rects = _textView.findMatchRects;
+
+	// Find the dimming child window
+	NSWindow* parentWindow = _textView.window;
+	NSWindow* dimmingWindow = nil;
+	for(NSWindow* child in parentWindow.childWindows)
+	{
+		if([NSStringFromClass([child class]) rangeOfString:@"TextFinderOverlay"].location != NSNotFound)
+		{
+			dimmingWindow = child;
+			break;
+		}
+	}
+
+	if(!dimmingWindow || rects.empty())
+	{
+		// Remove cutout subviews from dimming window
+		if(dimmingWindow)
+		{
+			for(NSView* v in [dimmingWindow.contentView.subviews copy])
+				if([v isKindOfClass:[OakFindCutoutView class]])
+					[v removeFromSuperview];
+		}
+		return;
+	}
+
+	// === Real cutouts: add clear-drawing subviews to the dimming overlay ===
+	// Apple's own drawRect uses [NSColor clearColor] + NSRectFill (which uses NSCompositeCopy)
+	// to punch holes. We do the same via subviews.
+	NSView* dimContentView = dimmingWindow.contentView;
+
+	// Remove previous cutout views
+	for(NSView* v in [dimContentView.subviews copy])
+		if([v isKindOfClass:[OakFindCutoutView class]])
+			[v removeFromSuperview];
+
+	for(auto const& matchRect : rects)
+	{
+		NSRect r = NSInsetRect(matchRect, -1, -1);
+
+		// Text view coords → screen coords → dimming window coords
+		NSRect screenRect = [_textView convertRect:r toView:nil];
+		screenRect = [parentWindow convertRectToScreen:screenRect];
+		NSRect dimRect = [dimmingWindow convertRectFromScreen:screenRect];
+
+		// If the dimming content view is flipped, flip Y
+		if([dimContentView isFlipped])
+		{
+			dimRect.origin.y = dimContentView.bounds.size.height - dimRect.origin.y - dimRect.size.height;
+		}
+
+		// Expand frame to include shadow padding
+		NSRect cutoutFrame = NSInsetRect(dimRect, -OakFindCutoutView.shadowPadding, -OakFindCutoutView.shadowPadding);
+		OakFindCutoutView* cutout = [[OakFindCutoutView alloc] initWithFrame:cutoutFrame];
+		[dimContentView addSubview:cutout];
+	}
+
+	[dimContentView setNeedsDisplay:YES];
+}
+
 - (BOOL)validateMenuItem:(NSMenuItem*)aMenuItem
 {
-	if([aMenuItem action] == @selector(toggleLineNumbers:))
+	if([aMenuItem action] == @selector(performFindPanelAction:))
+		return [_textFinder validateAction:(NSTextFinderAction)[aMenuItem tag]];
+	else if([aMenuItem action] == @selector(toggleLineNumbers:))
 		[aMenuItem setTitle:[gutterView visibilityForColumnWithIdentifier:GVLineNumbersColumnIdentifier] ? @"Hide Line Numbers" : @"Show Line Numbers"];
 	else if([aMenuItem action] == @selector(takeThemeUUIDFrom:))
 		[aMenuItem setState:_textView.theme && _textView.theme->uuid() == [[aMenuItem representedObject] UTF8String] ? NSControlStateValueOn : NSControlStateValueOff];
@@ -499,13 +683,6 @@ static NSString* const kFoldingsColumnIdentifier  = @"foldings";
 {
 	OakPasteboardChooser* chooser = [OakPasteboardChooser sharedChooserForName:NSGeneralPboard];
 	chooser.action = @selector(paste:);
-	[chooser showWindowRelativeToFrame:[self.window convertRectToScreen:[_textView convertRect:[_textView visibleRect] toView:nil]]];
-}
-
-- (void)showFindHistory:(id)sender
-{
-	OakPasteboardChooser* chooser = [OakPasteboardChooser sharedChooserForName:NSFindPboard];
-	chooser.action = @selector(findNext:);
 	[chooser showWindowRelativeToFrame:[self.window convertRectToScreen:[_textView convertRect:[_textView visibleRect] toView:nil]]];
 }
 
