@@ -143,7 +143,6 @@ BOOL HasDocumentWindow (NSArray* windows)
 				{ @"Save All",                @selector(saveAllDocuments:),         @"s", .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagOption },
 				{ @"Revert",                  @selector(revertDocumentToSaved:)            },
 				{ /* -------- */ },
-				{ @"Page Setup…",             @selector(runPageLayout:),                  .target = NSApp.delegate },
 				{ @"Print…",                  @selector(printDocument:),            @"p"   },
 			}
 		},
@@ -188,47 +187,19 @@ BOOL HasDocumentWindow (NSArray* windows)
 				},
 				{ @"Find",
 					.submenu = {
-						{ @"Find and Replace…",           @selector(orderFrontFindPanel:),          @"f", .tag = 1 },
+						{ @"Find…",                       @selector(performFindPanelAction:),       @"f", .tag = NSTextFinderActionShowFindInterface },
+						{ @"Find and Replace…",           @selector(performFindPanelAction:),       @"f", .tag = NSTextFinderActionShowReplaceInterface, .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagOption },
+						{ /* -------- */ },
 						{ @"Find in Project…",            @selector(orderFrontFindPanel:),          @"F", .tag = 3 },
 						{ @"Find in Folder…",             @selector(orderFrontFindPanel:),                .tag = 4 },
 						{ /* -------- */ },
-						{ @"Show Find History",           @selector(showFindHistory:),              @"f", .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagOption|NSEventModifierFlagControl },
+						{ @"Find Next",                   @selector(performFindPanelAction:),       @"g",  .tag = NSTextFinderActionNextMatch },
+						{ @"Find Previous",               @selector(performFindPanelAction:),       @"G",  .tag = NSTextFinderActionPreviousMatch },
 						{ /* -------- */ },
-						{ @"Incremental Search",          @selector(incrementalSearch:),            @"s", .modifierFlags = NSEventModifierFlagControl },
-						{ @"Incremental Search Previous", @selector(incrementalSearchPrevious:),    @"S", .modifierFlags = NSEventModifierFlagControl },
-						{ /* -------- */ },
-						{ @"Find Next",                   @selector(findNext:),                     @"g"   },
-						{ @"Find Previous",               @selector(findPrevious:),                 @"G"   },
-						{ @"Find All",                    @selector(findAllInSelection:),           @"f", .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagOption },
-						{ /* -------- */ },
-						{ @"Find Options",
-							.submenu = {
-								{ @"Ignore Case",        @selector(toggleFindOption:), @"c", .tag =   2, .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagOption },
-								{ @"Regular Expression", @selector(toggleFindOption:), @"r", .tag =   8, .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagOption },
-								{ @"Ignore Whitespace",  @selector(toggleFindOption:),       .tag =   4  },
-								{ @"Wrap Around",        @selector(toggleFindOption:), @"a", .tag = 128, .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagOption },
-							}
-						},
-						{ /* -------- */ },
-						{ @"Replace",                     @selector(replace:),                      @"g", .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagOption },
-						{ @"Replace & Find",              @selector(replaceAndFind:)                       },
-						{ @"Replace All",                 @selector(replaceAll:),                   @"g", .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagControl },
-						{ @"Replace All in Selection",    @selector(replaceAllInSelection:),        @"G", .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagControl },
-						{ /* -------- */ },
-						{ @"Use Selection for Find",      @selector(copySelectionToFindPboard:),    @"e"   },
-						{ @"Use Selection for Replace",   @selector(copySelectionToReplacePboard:), @"E"   },
+						{ @"Use Selection for Find",      @selector(performFindPanelAction:),       @"e",  .tag = NSTextFinderActionSetSearchString },
 					}
 				},
-				{ @"Spelling",
-					.submenuRef = &spellingMenu, .submenu = {
-						{ @"Spelling…",                   @selector(showGuessPanel:),                @":"   },
-						{ @"Check Document Now",          @selector(checkSpelling:),                 @";"   },
-						{ /* -------- */ },
-						{ @"Check Spelling While Typing", @selector(toggleContinuousSpellChecking:), @";", .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagOption },
-						{ /* -------- */ },
-					}
-				},
-			}
+				}
 		},
 		{ @"View",
 			.submenu = {
@@ -414,7 +385,6 @@ BOOL HasDocumentWindow (NSArray* windows)
 	NSMenu* menu = MBCreateMenu(items, [[OakMainMenu alloc] initWithTitle:@"AMainMenu"]);
 	bundlesMenu.delegate    = self;
 	themesMenu.delegate     = self;
-	spellingMenu.delegate   = self;
 	wrapColumnMenu.delegate = self;
 	return menu;
 }
@@ -843,8 +813,4 @@ BOOL HasDocumentWindow (NSArray* windows)
 // = Printing =
 // ============
 
-- (IBAction)runPageLayout:(id)sender
-{
-	[[NSPageLayout pageLayout] runModal];
-}
 @end

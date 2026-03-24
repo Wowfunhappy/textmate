@@ -89,11 +89,6 @@ static NSMutableDictionary* SharedChoosers;
 
 		NSString* windowTitle = @"Clipboard History";
 		NSString* actionName  = @"Paste";
-		if([_pasteboard isEqual:[OakPasteboard pasteboardWithName:NSFindPboard]])
-		{
-			windowTitle = @"Find History";
-			actionName  = @"Find Next";
-		}
 
 		_searchField = [[NSSearchField alloc] initWithFrame:NSZeroRect];
 		[_searchField.cell setScrollable:YES];
