@@ -43,7 +43,6 @@
 - (void)goToComputer:(id)sender;
 - (void)goToHome:(id)sender;
 - (void)goToDesktop:(id)sender;
-- (void)goToFavorites:(id)sender;
 - (void)goToSCMDataSource:(id)sender;
 - (void)orderFrontGoToFolder:(id)sender;
 @end

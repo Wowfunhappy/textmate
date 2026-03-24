@@ -1929,7 +1929,6 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 - (IBAction)goToComputer:(id)sender         { self.fileBrowserVisible = YES; [self.fileBrowser goToComputer:sender];         }
 - (IBAction)goToHome:(id)sender             { self.fileBrowserVisible = YES; [self.fileBrowser goToHome:sender];             }
 - (IBAction)goToDesktop:(id)sender          { self.fileBrowserVisible = YES; [self.fileBrowser goToDesktop:sender];          }
-- (IBAction)goToFavorites:(id)sender        { self.fileBrowserVisible = YES; [self.fileBrowser goToFavorites:sender];        }
 - (IBAction)goToSCMDataSource:(id)sender    { self.fileBrowserVisible = YES; [self.fileBrowser goToSCMDataSource:sender];    }
 - (IBAction)orderFrontGoToFolder:(id)sender { self.fileBrowserVisible = YES; [self.fileBrowser orderFrontGoToFolder:sender]; }
 
@@ -2372,7 +2371,6 @@ static NSTouchBarItemIdentifier kTouchBarTabNavigationIdentifier = @"com.macroma
 static NSTouchBarItemIdentifier kTouchBarNewTabItemIdentifier    = @"com.macromates.TextMate.touch-bar.new-tab";
 static NSTouchBarItemIdentifier kTouchBarQuickOpenItemIdentifier = @"com.macromates.TextMate.touch-bar.quick-open";
 static NSTouchBarItemIdentifier kTouchBarFindItemIdentifier      = @"com.macromates.TextMate.touch-bar.find";
-static NSTouchBarItemIdentifier kTouchBarFavoritesItemIdentifier = @"com.macromates.TextMate.touch-bar.favorites";
 
 - (NSTouchBar*)makeTouchBar
 {
@@ -2384,7 +2382,6 @@ static NSTouchBarItemIdentifier kTouchBarFavoritesItemIdentifier = @"com.macroma
 		kTouchBarQuickOpenItemIdentifier,
 		NSTouchBarItemIdentifierFlexibleSpace,
 		kTouchBarFindItemIdentifier,
-		kTouchBarFavoritesItemIdentifier,
 	];
 	return bar;
 }
@@ -2428,12 +2425,6 @@ static NSTouchBarItemIdentifier kTouchBarFavoritesItemIdentifier = @"com.macroma
 
 		res = [[NSCustomTouchBarItem alloc] initWithIdentifier:identifier];
 		res.view = findInProjectButton;
-		res.visibilityPriority = NSTouchBarItemPriorityNormal;
-	}
-	else if([identifier isEqualToString:kTouchBarFavoritesItemIdentifier])
-	{
-		res = [[NSCustomTouchBarItem alloc] initWithIdentifier:identifier];
-		res.view = [NSButton buttonWithImage:[NSImage imageNamed:NSImageNameTouchBarBookmarksTemplate] target:nil action:@selector(openFavorites:)];
 		res.visibilityPriority = NSTouchBarItemPriorityNormal;
 	}
 	return res;

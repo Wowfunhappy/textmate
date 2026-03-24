@@ -339,7 +339,6 @@ BOOL HasDocumentWindow (NSArray* windows)
 				{ @"Computer",         @selector(goToComputer:),           @"C"   },
 				{ @"Home",             @selector(goToHome:),               @"H"   },
 				{ @"Desktop",          @selector(goToDesktop:),            @"D"   },
-				{ @"Favorites",        @selector(goToFavorites:)                  },
 				{ /* -------- */ },
 				{ @"Go to Folder…",    @selector(orderFrontGoToFolder:)           },
 				{ @"Reload",           @selector(reload:)                         },
@@ -576,11 +575,7 @@ BOOL HasDocumentWindow (NSArray* windows)
 	if(!HasDocumentWindow([NSApp orderedWindows]))
 	{
 		BOOL disableUntitledAtStartupPrefs = [[NSUserDefaults standardUserDefaults] boolForKey:kUserDefaultsDisableNewDocumentAtStartupKey];
-		BOOL showFavoritesInsteadPrefs     = [[NSUserDefaults standardUserDefaults] boolForKey:kUserDefaultsShowFavoritesInsteadOfUntitledKey];
-
-		if(showFavoritesInsteadPrefs)
-			[self openFavorites:self];
-		else if(!disableUntitledAtStartupPrefs)
+		if(!disableUntitledAtStartupPrefs)
 			[self newDocument:self];
 	}
 

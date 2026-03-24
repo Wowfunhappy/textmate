@@ -111,8 +111,6 @@ static bool is_binary (std::string const& path)
 		actionsView.reloadButton.target    = self;
 		actionsView.reloadButton.action    = @selector(reload:);
 		actionsView.searchButton.action    = @selector(orderFrontFindPanelForFileBrowser:);
-		actionsView.favoritesButton.target = self;
-		actionsView.favoritesButton.action = @selector(goToFavorites:);
 		actionsView.scmButton.target       = self;
 		actionsView.scmButton.action       = @selector(goToSCMDataSource:);
 
@@ -178,14 +176,6 @@ static bool is_binary (std::string const& path)
 - (void)goToComputer:(id)sender      { [self goToURL:kURLLocationComputer]; }
 - (void)goToHome:(id)sender          { [self goToURL:[NSURL fileURLWithPath:NSHomeDirectory()]]; }
 - (void)goToDesktop:(id)sender       { [self goToURL:[NSFileManager.defaultManager URLForDirectory:NSDesktopDirectory inDomain:NSUserDomainMask appropriateForURL:nil create:YES error:nil]]; }
-
-- (void)goToFavorites:(id)sender
-{
-	if(![self.fileBrowserView.URL isEqual:kURLLocationFavorites])
-		[self goToURL:kURLLocationFavorites];
-	else if(self.canGoBack)
-		[self goBack:sender];
-}
 
 - (void)goToSCMDataSource:(id)sender
 {
@@ -373,8 +363,6 @@ static bool is_binary (std::string const& path)
 		{ @"Rename",                  @selector(editSelectedEntries:)                },
 		{ @"Duplicate",               @selector(duplicateSelectedEntries:)           },
 		{ @"Quick Look",              @selector(toggleQuickLookPreview:), .target = self.fileBrowserView },
-		{ @"Add to Favorites",        @selector(addSelectedEntriesToFavorites:)      },
-		{ @"Remove From Favorites",   @selector(removeSelectedEntriesFromFavorites:) },
 		{ /* -------- */ },
 		{ @"Move to Trash",           @selector(deleteURLs:) },
 		{ /* -------- */ .ref = &insertBundleItemsMenuItem },
@@ -558,35 +546,6 @@ static bool is_binary (std::string const& path)
 			[self.fileBrowserView.window makeKeyWindow];
 			[self.fileBrowserView.outlineView editColumn:0 row:row withEvent:nil select:YES];
 		}
-	}
-}
-
-- (void)addSelectedEntriesToFavorites:(id)sender
-{
-	NSURL* url = kURLLocationFavorites;
-	NSError* error;
-	if([NSFileManager.defaultManager createDirectoryAtURL:url withIntermediateDirectories:YES attributes:nil error:&error])
-	{
-		for(FileItem* item in self.fileBrowserView.previewableItems)
-		{
-			NSURL* linkURL = [url URLByAppendingPathComponent:item.localizedName];
-			if(![NSFileManager.defaultManager createSymbolicLinkAtURL:linkURL withDestinationURL:item.resolvedURL error:&error])
-				[self.view.window presentError:error];
-		}
-	}
-	else
-	{
-		[self.view.window presentError:error];
-	}
-}
-
-- (void)removeSelectedEntriesFromFavorites:(id)sender
-{
-	for(FileItem* item in self.fileBrowserView.previewableItems)
-	{
-		NSError* error;
-		if(![NSFileManager.defaultManager trashItemAtURL:item.URL resultingItemURL:nil error:&error])
-			[self.view.window presentError:error];
 	}
 }
 
@@ -814,16 +773,6 @@ static bool is_binary (std::string const& path)
 	}
 }
 
-- (BOOL)favoritesDirectoryContainsItems:(NSArray<FileItem*>*)items
-{
-	for(FileItem* item in items)
-	{
-		if([kURLLocationFavorites isEqual:item.parentURL])
-			return YES;
-	}
-	return NO;
-}
-
 - (BOOL)canPaste
 {
 	return self.fileBrowserView.directoryURLForNewItems && [[NSPasteboard.generalPasteboard availableTypeFromArray:@[ NSFilenamesPboardType ]] isEqualToString:NSFilenamesPboardType];
@@ -858,10 +807,6 @@ static bool is_binary (std::string const& path)
 		menuItem.hidden = previewableItems.count != 1 || previewableItems.firstObject.isPackage == NO;
 	else if(menuItem.action == @selector(editSelectedEntries:))
 		menuItem.hidden = previewableItems.count != 1 || previewableItems.firstObject.canRename == NO;
-	else if(menuItem.action == @selector(addSelectedEntriesToFavorites:))
-		menuItem.hidden = previewableItems.count == 0 || [self favoritesDirectoryContainsItems:previewableItems];
-	else if(menuItem.action == @selector(removeSelectedEntriesFromFavorites:))
-		menuItem.hidden = previewableItems.count == 0 || ![self favoritesDirectoryContainsItems:previewableItems];
 	else if(menuItem.action == @selector(cutURLs:))
 		menuItem.hidden = previewableItems.count == 0;
 	else if(menuItem.action == @selector(copyURLs:))
@@ -899,8 +844,6 @@ static bool is_binary (std::string const& path)
 			{ @"Copy%@",                  @selector(copyURLs:)                           },
 			{ copyAsPathnameTitle,        @selector(copyAsPathname:)                     },
 			{ @"Show%@ in Finder",        @selector(showSelectedEntriesInFinder:)        },
-			{ @"Add%@ to Favorites",      @selector(addSelectedEntriesToFavorites:)      },
-			{ @"Remove%@ From Favorites", @selector(removeSelectedEntriesFromFavorites:) },
 		};
 
 		for(auto const& info : menuTitles)
