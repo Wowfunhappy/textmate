@@ -198,6 +198,8 @@ OSStatus TextMateQuickLookPlugIn_GenerateThumbnailForURL (void* instance, QLThum
 
 	NSFont* font = [NSFont userFixedPitchFontOfSize:4];
 	NSAttributedString* output = create_attributed_string(buffer, kMacClassicThemeUUID, to_s([font fontName]), [font pointSize]);
+	if(!output || [output length] == 0)
+		return noErr;
 
 	// Check if cancelled
 	if(QLThumbnailRequestIsCancelled(request))
@@ -219,6 +221,15 @@ OSStatus TextMateQuickLookPlugIn_GenerateThumbnailForURL (void* instance, QLThum
 			CGContextSaveGState(bitmapContext);
 			CGContextTranslateCTM(bitmapContext, 0.0, size.height);
 			CGContextScaleCTM(bitmapContext, 1.0, -1.0);
+
+			// Scale to fit the full document width in the thumbnail
+			NSRect textBounds = [output boundingRectWithSize:NSMakeSize(CGFLOAT_MAX, CGFLOAT_MAX) options:NSStringDrawingUsesLineFragmentOrigin];
+			if(textBounds.size.width > size.width && textBounds.size.width > 0)
+			{
+				CGFloat scale = size.width / textBounds.size.width;
+				CGContextScaleCTM(bitmapContext, scale, scale);
+			}
+
 			[output drawAtPoint:NSZeroPoint];
 			CGContextRestoreGState(bitmapContext);
 			[NSGraphicsContext restoreGraphicsState];
