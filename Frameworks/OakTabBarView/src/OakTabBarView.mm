@@ -42,7 +42,7 @@ static NSString* const OakTabItemPasteboardType = @"com.macromates.TextMate.tabI
 
 - (NSArray*)writableTypesForPasteboard:(NSPasteboard*)aPasteboard
 {
-	return OakIsEmptyString(_path) ? @[ OakTabItemPasteboardType ] : @[ OakTabItemPasteboardType, (NSString*)kUTTypeFileURL ];
+	return @[ OakTabItemPasteboardType ];
 }
 
 - (NSPasteboardWritingOptions)writingOptionsForType:(NSString*)aType pasteboard:(NSPasteboard*)aPasteboard
@@ -113,7 +113,6 @@ static NSString* const OakTabItemPasteboardType = @"com.macromates.TextMate.tabI
 	NSRect _didCloseTabFrame;
 }
 @property (nonatomic) NSUInteger draggedTabIndex;
-@property (nonatomic) BOOL expanded;
 @property (nonatomic) NSPoint mouseDownPos;
 @property (nonatomic) BOOL isMouseInside;
 @end
@@ -636,7 +635,8 @@ static NSString* const OakTabItemPasteboardType = @"com.macromates.TextMate.tabI
 
 	NSDraggingItem* dragItem = [[NSDraggingItem alloc] initWithPasteboardWriter:tabItem];
 	[dragItem setDraggingFrame:srcRect contents:dragImage];
-	[self beginDraggingSessionWithItems:@[ dragItem ] event:anEvent source:self];
+	NSDraggingSession* session = [self beginDraggingSessionWithItems:@[ dragItem ] event:anEvent source:self];
+	session.animatesToStartingPositionsOnCancelOrFail = NO;
 }
 
 - (NSDragOperation)draggingSession:(NSDraggingSession*)session sourceOperationMaskForDraggingContext:(NSDraggingContext)context
@@ -648,8 +648,14 @@ static NSString* const OakTabItemPasteboardType = @"com.macromates.TextMate.tabI
 {
 	if(_draggedTabItem)
 	{
-		if(operation != NSDragOperationMove)
+		if(operation == NSDragOperationNone && _tabItems.count > 0 && [_delegate respondsToSelector:@selector(tabBarView:droppedTabAtIndex:atPoint:)])
+		{
+			[_delegate tabBarView:self droppedTabAtIndex:_draggedTabIndex atPoint:screenPoint];
+		}
+		else if(operation != NSDragOperationMove)
+		{
 			[_tabItems insertObject:_draggedTabItem atIndex:_draggedTabIndex];
+		}
 
 		_draggedTabItem = nil;
 		[self resizeTabItemViewFrames];

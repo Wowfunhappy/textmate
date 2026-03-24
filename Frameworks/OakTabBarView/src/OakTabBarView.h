@@ -18,6 +18,7 @@ PUBLIC @interface OakTabBarView : OakBackgroundFillView
 @property (nonatomic, weak) id <OakTabBarViewDelegate> delegate;
 @property (nonatomic, weak) id <OakTabBarViewDataSource> dataSource;
 @property (nonatomic, readonly) NSUInteger countOfVisibleTabs;
+@property (nonatomic, getter=isExpanded) BOOL expanded;
 - (void)expand;
 - (void)reloadData;
 - (void)setSelectedTab:(NSUInteger)anIndex;
@@ -40,6 +41,7 @@ PUBLIC @interface OakTabBarView : OakBackgroundFillView
 // Methods sent to the delegate which the tab was dragged to
 - (BOOL)performDropOfTabItem:(OakTabItem*)tabItem fromTabBar:(OakTabBarView*)sourceTabBar index:(NSUInteger)dragIndex toTabBar:(OakTabBarView*)destTabBar index:(NSUInteger)droppedIndex operation:(NSDragOperation)operation;
 
+- (void)tabBarView:(OakTabBarView*)aTabBarView droppedTabAtIndex:(NSUInteger)tabIndex atPoint:(NSPoint)screenPoint;
 - (void)performCloseTab:(OakTabBarView*)sender;
 - (void)performCloseOtherTabsXYZ:(OakTabBarView*)sender;
 @end

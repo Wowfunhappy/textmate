@@ -131,10 +131,10 @@
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <button toolTip="With this option disabled, the tab bar above the document will not show when the window only contains a single document." id="69">
+                <button toolTip="When enabled, the tab bar is always visible. Otherwise, it can be toggled from the View menu." id="69">
                     <rect key="frame" x="203" y="201" width="186" height="18"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <buttonCell key="cell" type="check" title="Show for single document" bezelStyle="regularSquare" imagePosition="left" alignment="left" state="on" inset="2" id="70">
+                    <buttonCell key="cell" type="check" title="Always show tab bar" bezelStyle="regularSquare" imagePosition="left" alignment="left" state="on" inset="2" id="70">
                         <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                         <font key="font" metaFont="system"/>
                     </buttonCell>

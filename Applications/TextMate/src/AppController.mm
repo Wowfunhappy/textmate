@@ -207,6 +207,7 @@ BOOL HasDocumentWindow (NSArray* windows)
 						{ @"Default Size", @selector(makeTextStandardSize:), @"0" },
 					}
 				},
+				{ @"Show Tab Bar",           @selector(toggleTabBar:)                 },
 				{ @"Show File Browser",      @selector(toggleFileBrowser:),    @"d", .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagOption|NSEventModifierFlagControl },
 				{ @"Show Line Numbers",      @selector(toggleLineNumbers:),    @"l", .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagOption },
 				{ /* -------- */ },

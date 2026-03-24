@@ -1762,6 +1762,28 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 	return YES;
 }
 
+- (void)tabBarView:(OakTabBarView*)aTabBarView droppedTabAtIndex:(NSUInteger)tabIndex atPoint:(NSPoint)screenPoint
+{
+	if(tabIndex >= _documents.count)
+		return;
+
+	OakDocument* document = _documents[tabIndex];
+
+	DocumentWindowController* controller = [DocumentWindowController new];
+	controller.documents = @[ document ];
+	[controller openAndSelectDocument:document activate:YES];
+	[controller showWindow:self];
+
+	NSRect frame = controller.window.frame;
+	frame.origin = NSMakePoint(screenPoint.x - NSWidth(frame) / 2, screenPoint.y - NSHeight(frame));
+	[controller.window setFrame:frame display:YES];
+
+	if(self.fileBrowserVisible || _documents.count > 1)
+		[self closeTabsAtIndexes:[NSIndexSet indexSetWithIndex:tabIndex] askToSaveChanges:NO createDocumentIfEmpty:YES activate:NO];
+	else
+		[self close];
+}
+
 - (IBAction)selectNextTab:(id)sender            { self.selectedTabIndex = (_selectedTabIndex + 1) % _documents.count;                    [self openAndSelectDocument:_documents[_selectedTabIndex] activate:YES]; }
 - (IBAction)selectPreviousTab:(id)sender        { self.selectedTabIndex = (_selectedTabIndex + _documents.count - 1) % _documents.count; [self openAndSelectDocument:_documents[_selectedTabIndex] activate:YES]; }
 - (IBAction)takeSelectedTabIndexFrom:(id)sender { self.selectedTabIndex = [sender tag];                                                  [self openAndSelectDocument:_documents[_selectedTabIndex] activate:YES]; }
@@ -1865,6 +1887,11 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 		}
 	}
 	[[self class] scheduleSessionBackup:self];
+}
+
+- (IBAction)toggleTabBar:(id)sender
+{
+	self.tabBarView.expanded = !self.tabBarView.isExpanded;
 }
 
 - (IBAction)toggleFileBrowser:(id)sender    { self.fileBrowserVisible = !self.fileBrowserVisible; }
@@ -2260,7 +2287,22 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 	};
 
 	BOOL active = YES;
-	if([menuItem action] == @selector(toggleFileBrowser:))
+	if([menuItem action] == @selector(toggleTabBar:))
+	{
+		BOOL alwaysShow = [[NSUserDefaults standardUserDefaults] boolForKey:kUserDefaultsDisableTabBarCollapsingKey];
+		if(alwaysShow)
+		{
+			[menuItem setTitle:@"Hide Tab Bar"];
+			menuItem.hidden = YES;
+		}
+		else
+		{
+			[menuItem setTitle:self.tabBarView.expanded ? @"Hide Tab Bar" : @"Show Tab Bar"];
+			menuItem.hidden = NO;
+			active = !self.tabBarView.expanded || _documents.count <= 1;
+		}
+	}
+	else if([menuItem action] == @selector(toggleFileBrowser:))
 		[menuItem setTitle:self.fileBrowserVisible ? @"Hide File Browser" : @"Show File Browser"];
 	else if([menuItem action] == @selector(toggleHTMLOutput:))
 	{
