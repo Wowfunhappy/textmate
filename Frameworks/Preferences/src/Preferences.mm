@@ -3,7 +3,6 @@
 #import "ProjectsPreferences.h"
 #import "BundlesPreferences.h"
 #import "VariablesPreferences.h"
-#import "SoftwareUpdatePreferences.h"
 #import "TerminalPreferences.h"
 #import "Keys.h"
 #import <MASPreferences/MASPreferencesWindowController.h>
@@ -42,7 +41,6 @@ OAK_DEBUG_VAR(Preferences);
 			[ProjectsPreferences new],
 			[BundlesPreferences new],
 			[VariablesPreferences new],
-			[SoftwareUpdatePreferences new],
 			[TerminalPreferences new]
 		];
 

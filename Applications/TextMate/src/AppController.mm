@@ -6,7 +6,6 @@
 #import "RMateServer.h"
 #import <BundleEditor/BundleEditor.h>
 #import <BundlesManager/BundlesManager.h>
-#import <CrashReporter/CrashReporter.h>
 #import <DocumentWindow/DocumentWindowController.h>
 #import <Find/Find.h>
 #import <CommitWindow/CommitWindow.h>
@@ -22,7 +21,6 @@
 #import <Preferences/Keys.h>
 #import <Preferences/Preferences.h>
 #import <Preferences/TerminalPreferences.h>
-#import <SoftwareUpdate/SoftwareUpdate.h>
 #import <document/OakDocument.h>
 #import <document/OakDocumentController.h>
 #import <bundles/query.h>
@@ -103,10 +101,7 @@ BOOL HasDocumentWindow (NSArray* windows)
 				{ @"About TextMate",        @selector(orderFrontAboutPanel:)               },
 				{ /* -------- */ },
 				{ @"Preferences…",          @selector(showPreferences:),            @","   },
-				{ @"Check for Update",      @selector(performSoftwareUpdateCheck:)         },
-				{ @"Check for Test Build",  @selector(performSoftwareUpdateCheck:),       .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagOption, .alternate = YES },
-				{ /* -------- */ },
-				{ @"Services",              .systemMenu = MBMenuTypeServices               },
+					{ @"Services",              .systemMenu = MBMenuTypeServices               },
 				{ /* -------- */ },
 				{ @"Hide TextMate",         @selector(hide:),                       @"h"   },
 				{ @"Hide Others",           @selector(hideOtherApplications:),      @"h", .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagOption },
@@ -458,15 +453,6 @@ BOOL HasDocumentWindow (NSArray* windows)
 	if(NSMenu* menu = [self mainMenu])
 		NSApp.mainMenu = menu;
 
-	SoftwareUpdate* swUpdate = [SoftwareUpdate sharedInstance];
-	NSString* parms = [NSString stringWithFormat:@"v=%@&os=%zu.%zu.%zu", [[[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleShortVersionString"] stringByAddingPercentEncodingWithAllowedCharacters:NSCharacterSet.URLQueryAllowedCharacterSet], oak::os_major(), oak::os_minor(), oak::os_patch()];
-	[swUpdate setSignee:key_chain_t::key_t("org.textmate.duff", "Allan Odgaard", "-----BEGIN PUBLIC KEY-----\nMIIBtjCCASsGByqGSM44BAEwggEeAoGBAPIE9PpXPK3y2eBDJ0dnR/D8xR1TiT9m\n8DnPXYqkxwlqmjSShmJEmxYycnbliv2JpojYF4ikBUPJPuerlZfOvUBC99ERAgz7\nN1HYHfzFIxVo1oTKWurFJ1OOOsfg8AQDBDHnKpS1VnwVoDuvO05gK8jjQs9E5LcH\ne/opThzSrI7/AhUAy02E9H7EOwRyRNLofdtPxpa10o0CgYBKDfcBscidAoH4pkHR\nIOEGTCYl3G2Pd1yrblCp0nCCUEBCnvmrWVSXUTVa2/AyOZUTN9uZSC/Kq9XYgqwj\nhgzqa8h/a8yD+ao4q8WovwGeb6Iso3WlPl8waz6EAPR/nlUTnJ4jzr9t6iSH9owS\nvAmWrgeboia0CI2AH++liCDvigOBhAACgYAFWO66xFvmF2tVIB+4E7CwhrSi2uIk\ndeBrpmNcZZ+AVFy1RXJelNe/cZ1aXBYskn/57xigklpkfHR6DGqpEbm6KC/47Jfy\ny5GEx+F/eBWEePi90XnLinytjmXRmS2FNqX6D15XNG1xJfjociA8bzC7s4gfeTUd\nlpQkBq2z71yitA==\n-----END PUBLIC KEY-----\n")];
-	[swUpdate setChannels:@{
-		kSoftwareUpdateChannelRelease:    [NSURL URLWithString:[NSString stringWithFormat:@"%s/releases/release?%@", REST_API, parms]],
-		kSoftwareUpdateChannelPrerelease: [NSURL URLWithString:[NSString stringWithFormat:@"%s/releases/beta?%@", REST_API, parms]],
-		kSoftwareUpdateChannelCanary:     [NSURL URLWithString:[NSString stringWithFormat:@"%s/releases/nightly?%@", REST_API, parms]],
-	}];
-
 	settings_t::set_default_settings_path([[[NSBundle mainBundle] pathForResource:@"Default" ofType:@"tmProperties"] fileSystemRepresentation]);
 	settings_t::set_global_settings_path(path::join(path::home(), "Library/Application Support/TextMate/Global.tmProperties"));
 
@@ -606,9 +592,6 @@ BOOL HasDocumentWindow (NSArray* windows)
 	[TerminalPreferences updateMateIfRequired];
 	[AboutWindowController showChangesIfUpdated];
 
-	[[CrashReporter sharedInstance] applicationDidFinishLaunching:aNotification];
-	[[CrashReporter sharedInstance] postNewCrashReportsToURLString:[NSString stringWithFormat:@"%s/crashes", REST_API]];
-
 	[OakCommitWindowServer sharedInstance]; // Setup server
 
 	self.didFinishLaunching = YES;
@@ -673,11 +656,6 @@ BOOL HasDocumentWindow (NSArray* windows)
 	D(DBF_AppController, bug("\n"););
 	[goToLinePanel orderOut:self];
 	[NSApp sendAction:@selector(selectAndCenter:) to:nil from:[goToLineTextField stringValue]];
-}
-
-- (IBAction)performSoftwareUpdateCheck:(id)sender
-{
-	[[SoftwareUpdate sharedInstance] checkForUpdates:self];
 }
 
 - (IBAction)showPreferences:(id)sender
