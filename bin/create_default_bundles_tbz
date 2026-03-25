@@ -23,7 +23,6 @@ bl="$builddir/Applications/bl/bl"
 		Git \
 		Go \
 		HTML \
-		"Hyperlink Helper" \
 		JSON \
 		JavaScript \
 		Make \
