@@ -214,19 +214,10 @@ BOOL HasDocumentWindow (NSArray* windows)
 				},
 				{ @"Show Invisibles",        @selector(toggleShowInvisibles:), @"i", .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagOption },
 				{ /* -------- */ },
-				{ @"Enable Soft Wrap",       @selector(toggleSoftWrap:),       @"w", .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagOption },
-				{ @"Show Wrap Column",       @selector(toggleShowWrapColumn:)         },
-				{ @"Show Indent Guides",     @selector(toggleShowIndentGuides:)       },
 				{ @"Wrap Column",
-					.submenuRef = &wrapColumnMenu, .submenu = {
-						{ @"Use Window Frame", @selector(takeWrapColumnFrom:)   },
-						{ /* -------- */ },
-						{ @"40",               @selector(takeWrapColumnFrom:), .tag = 40 },
-						{ @"80",               @selector(takeWrapColumnFrom:), .tag = 80 },
-						{ /* -------- */ },
-						{ @"Other…",           @selector(takeWrapColumnFrom:), .tag = -1 },
-					}
+					.submenuRef = &wrapColumnMenu, .submenu = { }
 				},
+				{ @"Show Indent Guides",     @selector(toggleShowIndentGuides:)       },
 				{ /* -------- */ },
 				{ @"Tab Size",
 					.submenu = {

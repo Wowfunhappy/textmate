@@ -88,17 +88,21 @@ OAK_DEBUG_VAR(AppController_Menus);
 	D(DBF_AppController_Menus, bug("\n"););
 	[aMenu removeAllItems];
 
-	SEL action = @selector(takeWrapColumnFrom:);
 	NSMenuItem* menuItem;
 
-	menuItem = [aMenu addItemWithTitle:@"Use Window Frame" action:action keyEquivalent:@""];
-	menuItem.tag = NSWrapColumnWindowWidth;
+	menuItem = [aMenu addItemWithTitle:@"Disable Soft Wrap" action:@selector(toggleSoftWrap:) keyEquivalent:@"w"];
+	menuItem.keyEquivalentModifierMask = NSEventModifierFlagCommand|NSEventModifierFlagOption;
 	[aMenu addItem:[NSMenuItem separatorItem]];
+
+	SEL action = @selector(takeWrapColumnFrom:);
+
+	menuItem = [aMenu addItemWithTitle:@"To Window Frame" action:action keyEquivalent:@""];
+	menuItem.tag = NSWrapColumnWindowWidth;
 
 	NSArray* presets = [[NSUserDefaults standardUserDefaults] arrayForKey:kUserDefaultsWrapColumnPresetsKey];
 	for(NSNumber* preset in [presets sortedArrayUsingSelector:@selector(compare:)])
 	{
-		menuItem = [aMenu addItemWithTitle:[NSString stringWithFormat:@"%@", preset] action:action keyEquivalent:@""];
+		menuItem = [aMenu addItemWithTitle:[NSString stringWithFormat:@"To %@ Characters", preset] action:action keyEquivalent:@""];
 		menuItem.tag = [preset integerValue];
 	}
 

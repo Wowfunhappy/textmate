@@ -3254,7 +3254,7 @@ static char const* kOakMenuItemTitle = "OakMenuItemTitle";
 	else if([aMenuItem action] == @selector(toggleShowInvisibles:))
 		[aMenuItem setTitle:self.showInvisibles ? @"Hide Invisible Characters" : @"Show Invisible Characters"];
 	else if([aMenuItem action] == @selector(toggleSoftWrap:))
-		[aMenuItem setTitle:self.softWrap ? @"Disable Soft Wrap" : @"Enable Soft Wrap"];
+		[aMenuItem setState:self.softWrap ? NSControlStateValueOff : NSControlStateValueOn];
 	else if([aMenuItem action] == @selector(toggleScrollPastEnd:))
 		[aMenuItem setTitle:self.scrollPastEnd ? @"Disallow Scroll Past End" : @"Allow Scroll Past End"];
 	else if([aMenuItem action] == @selector(toggleShowWrapColumn:))
@@ -3266,7 +3266,7 @@ static char const* kOakMenuItemTitle = "OakMenuItemTitle";
 	else if([aMenuItem action] == @selector(takeSpellingLanguageFrom:))
 		[aMenuItem setState:[[NSString stringWithCxxString:documentView->spelling_language()] isEqualToString:[aMenuItem representedObject]] ? NSControlStateValueOn : NSControlStateValueOff];
 	else if([aMenuItem action] == @selector(takeWrapColumnFrom:))
-		[aMenuItem setState:(documentView && documentView->wrap_column() == [aMenuItem tag]) ? NSControlStateValueOn : NSControlStateValueOff];
+		[aMenuItem setState:(self.softWrap && documentView && documentView->wrap_column() == [aMenuItem tag]) ? NSControlStateValueOn : NSControlStateValueOff];
 	else if([aMenuItem action] == @selector(undo:))
 	{
 		[aMenuItem setTitle:@"Undo"];
@@ -3492,6 +3492,8 @@ static char const* kOakMenuItemTitle = "OakMenuItemTitle";
 	ASSERT([sender respondsToSelector:@selector(tag)]);
 	if(!documentView || documentView->wrap_column() == [sender tag])
 		return;
+
+	self.softWrap = YES;
 
 	if([sender tag] == NSWrapColumnAskUser)
 	{
