@@ -23,6 +23,12 @@ OAK_DEBUG_VAR(AppController_Menus);
 	return NO;
 }
 
+static bool bundle_has_grammar (bundles::item_ptr const& bundle)
+{
+	auto grammars = bundles::query(bundles::kFieldAny, NULL_STR, scope::wildcard, bundles::kItemTypeGrammar, bundle->uuid());
+	return !grammars.empty();
+}
+
 - (void)bundlesMenuNeedsUpdate:(NSMenu*)aMenu
 {
 	D(DBF_AppController_Menus, bug("\n"););
@@ -39,7 +45,7 @@ OAK_DEBUG_VAR(AppController_Menus);
 
 	for(auto const& pair : ordered)
 	{
-		if(pair.second->menu().empty())
+		if(pair.second->menu().empty() || bundle_has_grammar(pair.second))
 			continue;
 
 		NSMenuItem* menuItem = [aMenu addItemWithTitle:[NSString stringWithCxxString:pair.first] action:NULL keyEquivalent:@""];
@@ -49,6 +55,52 @@ OAK_DEBUG_VAR(AppController_Menus);
 
 	if(ordered.empty())
 		[aMenu addItemWithTitle:@"No Bundles Loaded" action:@selector(nop:) keyEquivalent:@""];
+}
+
+- (void)languageMenuNeedsUpdate:(NSMenu*)aMenu
+{
+	D(DBF_AppController_Menus, bug("\n"););
+	[aMenu removeAllItems];
+
+	scope::context_t scope = "";
+	if(id textView = [NSApp targetForAction:@selector(scopeContext)])
+		scope = [textView scopeContext];
+
+	// Find the grammar bundle for the current document's scope
+	std::string const fullScope = to_s(scope.left);
+	std::string const rootScope = fullScope.substr(0, fullScope.find(' '));
+	if(rootScope.empty())
+	{
+		[aMenu addItemWithTitle:@"No Language" action:@selector(nop:) keyEquivalent:@""];
+		return;
+	}
+
+	bundles::item_ptr grammarItem;
+	for(auto const& item : bundles::query(bundles::kFieldGrammarScope, rootScope, scope::wildcard, bundles::kItemTypeGrammar))
+	{
+		grammarItem = item;
+		break;
+	}
+
+	if(!grammarItem)
+	{
+		[aMenu addItemWithTitle:@"No Language" action:@selector(nop:) keyEquivalent:@""];
+		return;
+	}
+
+	// Find the bundle that owns this grammar
+	bundles::item_ptr bundle = bundles::lookup(grammarItem->bundle_uuid());
+	if(!bundle || bundle->menu().empty())
+	{
+		[aMenu addItemWithTitle:[NSString stringWithCxxString:grammarItem->name()] action:@selector(nop:) keyEquivalent:@""];
+		return;
+	}
+
+	// Temporarily set the menu title to the bundle UUID so BundleMenuDelegate can look it up
+	NSString* savedTitle = aMenu.title;
+	aMenu.title = [NSString stringWithCxxString:bundle->uuid()];
+	[[BundleMenuDelegate sharedInstance] menuNeedsUpdate:aMenu];
+	aMenu.title = savedTitle;
 }
 
 - (void)themesMenuNeedsUpdate:(NSMenu*)aMenu
@@ -115,6 +167,8 @@ OAK_DEBUG_VAR(AppController_Menus);
 {
 	if(aMenu == bundlesMenu)
 		[self bundlesMenuNeedsUpdate:aMenu];
+	else if(aMenu == languageMenu)
+		[self languageMenuNeedsUpdate:aMenu];
 	else if(aMenu == themesMenu)
 		[self themesMenuNeedsUpdate:aMenu];
 	else if(aMenu == wrapColumnMenu)

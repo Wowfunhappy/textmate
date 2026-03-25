@@ -21,21 +21,18 @@ bl="$builddir/Applications/bl/bl"
 		C \
 		CSS \
 		Diff \
-		Git \
 		Go \
 		HTML \
 		JSON \
 		JavaScript \
 		Make \
 		Markdown \
-		Math \
 		Objective-C \
 		PHP \
 		"Property List" \
 		Python \
 		Ruby \
 		Rust \
-		SCM \
 		"SCM Diff Gutter" \
 		"Shell Script" \
 		Source \
