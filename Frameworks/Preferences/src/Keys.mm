@@ -32,7 +32,7 @@ static NSDictionary* default_settings ()
 		kUserDefaultsRMateServerPortKey:         @"52698",
 		kUserDefaultsLicenseOwnerKey:            NSFullUserName(),
 		kUserDefaultsLineNumbersKey:             @YES,
-		@"alwaysShowBundlesInLanguageMenu":      @[ @"4F45FDC0-62CA-4786-9134-8BC7C1F5606F" ], // Source bundle
+		@"alwaysShowBundlesInLanguageMenu":      @[ @"4F45FDC0-62CA-4786-9134-8BC7C1F5606F", @"8A9DDCA2-77E8-11D9-B5A8-000D93589AF6", @"5A9D4FC6-6CBE-11D9-A21B-000D93589AF6" ], // Source, Math, TextMate
 	};
 }
 

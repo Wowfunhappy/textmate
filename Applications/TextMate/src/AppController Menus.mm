@@ -37,11 +37,29 @@ OAK_DEBUG_VAR(AppController_Menus);
 	std::string const rootScope = fullScope.substr(0, fullScope.find(' '));
 	std::string currentBundleUUID;
 
-	if(rootScope.empty())
+	// "Choose Language" submenu
+	NSMenuItem* chooseItem = [aMenu addItemWithTitle:@"Choose Language" action:NULL keyEquivalent:@""];
+	NSMenu* chooseMenu = [[NSMenu alloc] initWithTitle:@"Choose Language"];
+
+	std::multimap<std::string, bundles::item_ptr, text::less_t> grammars;
+	for(auto const& item : bundles::query(bundles::kFieldAny, NULL_STR, scope::wildcard, bundles::kItemTypeGrammar))
 	{
-		[aMenu addItemWithTitle:@"No Language" action:@selector(nop:) keyEquivalent:@""];
+		if(item->value_for_field(bundles::kFieldGrammarScope) != NULL_STR && !item->hidden_from_user())
+			grammars.emplace(item->name(), item);
 	}
-	else
+
+	for(auto const& pair : grammars)
+	{
+		NSMenuItem* item = [chooseMenu addItemWithTitle:[NSString stringWithCxxString:pair.first] action:@selector(takeGrammarUUIDFrom:) keyEquivalent:@""];
+		[item setRepresentedObject:[NSString stringWithCxxString:pair.second->uuid()]];
+		if(pair.second->value_for_field(bundles::kFieldGrammarScope) == rootScope)
+			[item setState:NSControlStateValueOn];
+	}
+
+	chooseItem.submenu = chooseMenu;
+
+	// Current language's bundle menu items
+	if(!rootScope.empty())
 	{
 		bundles::item_ptr grammarItem;
 		for(auto const& item : bundles::query(bundles::kFieldGrammarScope, rootScope, scope::wildcard, bundles::kItemTypeGrammar))
@@ -56,10 +74,19 @@ OAK_DEBUG_VAR(AppController_Menus);
 			if(bundle && !bundle->menu().empty())
 			{
 				currentBundleUUID = bundle->uuid();
-				NSString* savedTitle = aMenu.title;
-				aMenu.title = [NSString stringWithCxxString:currentBundleUUID];
-				[[BundleMenuDelegate sharedInstance] menuNeedsUpdate:aMenu];
-				aMenu.title = savedTitle;
+
+				NSMenu* tmpMenu = [[NSMenu alloc] initWithTitle:[NSString stringWithCxxString:currentBundleUUID]];
+				[[BundleMenuDelegate sharedInstance] menuNeedsUpdate:tmpMenu];
+
+				if(tmpMenu.numberOfItems > 0)
+				{
+					[aMenu addItem:[NSMenuItem separatorItem]];
+					for(NSMenuItem* item in [tmpMenu.itemArray copy])
+					{
+						[tmpMenu removeItem:item];
+						[aMenu addItem:item];
+					}
+				}
 			}
 		}
 	}

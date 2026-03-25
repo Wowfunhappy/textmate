@@ -25,18 +25,22 @@ bl="$builddir/Applications/bl/bl"
 		HTML \
 		JSON \
 		JavaScript \
+		Lua \
 		Make \
 		Markdown \
+		Math \
 		Objective-C \
 		PHP \
-		"Property List" \
 		Python \
 		Ruby \
 		Rust \
+		SCSS \
 		"SCM Diff Gutter" \
 		"Shell Script" \
 		Source \
+		Swift \
 		Text \
+		TextMate \
 		Themes \
 		XML \
 	&& \
