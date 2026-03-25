@@ -14,6 +14,7 @@ static NSArray* default_environment ()
 		@{ @"enabled": @NO, @"name": @"TM_GIT",          @"value": @"/opt/local/bin/git"               },
 		@{ @"enabled": @NO, @"name": @"TM_HG",           @"value": @"/opt/local/bin/hg"                },
 		@{ @"enabled": @NO, @"name": @"TM_MAKE_FLAGS",   @"value": @"rj8"                              },
+		@{ @"enabled": @NO, @"name": @"TM_PYTHON",      @"value": @"python3"                          },
 	];
 }
 
