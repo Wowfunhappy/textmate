@@ -4719,6 +4719,11 @@ static scope::context_t add_modifiers_to_scope (scope::context_t scope, NSUInteg
 				{
 					[NSApp sendEvent:event];
 				}
+				else if([event window] && [event window] != self.window)
+				{
+					// Allow interaction with other windows (e.g. $DIALOG nibs)
+					[NSApp sendEvent:event];
+				}
 				else if([event type] == NSEventTypeKeyDown && (([[event charactersIgnoringModifiers] isEqualToString:@"c"] && ([event modifierFlags] & (NSEventModifierFlagShift|NSEventModifierFlagControl|NSEventModifierFlagOption|NSEventModifierFlagCommand)) == NSEventModifierFlagControl) || ([[event charactersIgnoringModifiers] isEqualToString:@"."] && ([event modifierFlags] & (NSEventModifierFlagShift|NSEventModifierFlagControl|NSEventModifierFlagOption|NSEventModifierFlagCommand)) == NSEventModifierFlagCommand)))
 				{
 					NSAlert* alert        = [[NSAlert alloc] init];
