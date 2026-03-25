@@ -3456,6 +3456,10 @@ static char const* kOakMenuItemTitle = "OakMenuItemTitle";
 	documentView->set_wrapping(flag, documentView->wrap_column());
 	[self scrollIndexToFirstVisible:documentView->begin(documentView->convert(visibleIndex.index).line)];
 	settings_t::set(kSettingsSoftWrapKey, (bool)flag, documentView->file_type());
+
+	bool showGuide = flag && documentView->wrap_column() != NSWrapColumnWindowWidth;
+	documentView->set_draw_wrap_column(showGuide);
+	settings_t::set(kSettingsShowWrapColumnKey, showGuide);
 }
 
 - (void)setSoftTabs:(BOOL)flag
@@ -3485,6 +3489,10 @@ static char const* kOakMenuItemTitle = "OakMenuItemTitle";
 	AUTO_REFRESH;
 	documentView->set_wrapping(self.softWrap, newWrapColumn);
 	settings_t::set(kSettingsWrapColumnKey, (int32_t)newWrapColumn);
+
+	bool showGuide = self.softWrap && newWrapColumn != NSWrapColumnWindowWidth;
+	documentView->set_draw_wrap_column(showGuide);
+	settings_t::set(kSettingsShowWrapColumnKey, showGuide);
 }
 
 - (void)takeWrapColumnFrom:(id)sender

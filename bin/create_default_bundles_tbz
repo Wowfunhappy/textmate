@@ -20,6 +20,7 @@ bl="$builddir/Applications/bl/bl"
 		"Bundle Support" \
 		C \
 		CSS \
+		Diff \
 		Git \
 		Go \
 		HTML \
