@@ -339,13 +339,6 @@ BOOL HasDocumentWindow (NSArray* windows)
 		{ @"Language",
 			.submenuRef = &languageMenu, .submenu = { }
 		},
-		{ @"Bundles",
-			.submenuRef = &bundlesMenu, .submenu = {
-				{ @"Select Bundle Item…", @selector(showBundleItemChooser:), @"t", .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagControl },
-				{ @"Edit Bundles…",       @selector(showBundleEditor:),      @"b", .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagOption|NSEventModifierFlagControl },
-				{ /* -------- */ },
-			}
-		},
 		{ @"Window",
 			.systemMenu = MBMenuTypeWindows, .submenu = {
 				{ @"Minimize",               @selector(miniaturize:),           @"m" },
@@ -373,7 +366,6 @@ BOOL HasDocumentWindow (NSArray* windows)
 	};
 
 	NSMenu* menu = MBCreateMenu(items, [[OakMainMenu alloc] initWithTitle:@"AMainMenu"]);
-	bundlesMenu.delegate    = self;
 	themesMenu.delegate     = self;
 	languageMenu.delegate   = self;
 	wrapColumnMenu.delegate = self;

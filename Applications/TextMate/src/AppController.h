@@ -1,6 +1,5 @@
 @interface AppController : NSObject <NSMenuDelegate>
 {
-	NSMenu* bundlesMenu;
 	NSMenu* languageMenu;
 	NSMenu* themesMenu;
 	NSMenu* wrapColumnMenu;

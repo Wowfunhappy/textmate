@@ -21,6 +21,11 @@
 	return self;
 }
 
+- (void)awakeFromNib
+{
+	[variablesTableView tableColumnWithIdentifier:@"enabled"].headerToolTip = @"Variable enabled";
+}
+
 - (IBAction)addVariable:(id)sender
 {
 	NSDictionary* entry = @{
@@ -77,6 +82,13 @@
 - (void)tableViewSelectionDidChange:(NSNotification*)aNotification
 {
 	self.canRemove = [variablesTableView selectedRow] != -1 && [_variables count] != 0;
+}
+
+- (NSString*)tableView:(NSTableView*)aTableView toolTipForCell:(NSCell*)aCell rect:(NSRectPointer)rect tableColumn:(NSTableColumn*)aTableColumn row:(NSInteger)row mouseLocation:(NSPoint)mouseLocation
+{
+	if([[aTableColumn identifier] isEqualToString:@"enabled"])
+		return @"Variable enabled";
+	return nil;
 }
 
 // ==========================

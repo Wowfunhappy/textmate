@@ -23,40 +23,6 @@ OAK_DEBUG_VAR(AppController_Menus);
 	return NO;
 }
 
-static bool bundle_has_grammar (bundles::item_ptr const& bundle)
-{
-	auto grammars = bundles::query(bundles::kFieldAny, NULL_STR, scope::wildcard, bundles::kItemTypeGrammar, bundle->uuid());
-	return !grammars.empty();
-}
-
-- (void)bundlesMenuNeedsUpdate:(NSMenu*)aMenu
-{
-	D(DBF_AppController_Menus, bug("\n"););
-	for(NSInteger i = aMenu.numberOfItems; i--; )
-	{
-		if([[aMenu itemAtIndex:i] isSeparatorItem])
-			break;
-		[aMenu removeItemAtIndex:i];
-	}
-
-	std::multimap<std::string, bundles::item_ptr, text::less_t> ordered;
-	for(auto const& item : bundles::query(bundles::kFieldAny, NULL_STR, scope::wildcard, bundles::kItemTypeBundle))
-		ordered.emplace(item->name(), item);
-
-	for(auto const& pair : ordered)
-	{
-		if(pair.second->menu().empty() || bundle_has_grammar(pair.second))
-			continue;
-
-		NSMenuItem* menuItem = [aMenu addItemWithTitle:[NSString stringWithCxxString:pair.first] action:NULL keyEquivalent:@""];
-		menuItem.submenu = [[NSMenu alloc] initWithTitle:[NSString stringWithCxxString:pair.second->uuid()]];
-		menuItem.submenu.delegate = [BundleMenuDelegate sharedInstance];
-	}
-
-	if(ordered.empty())
-		[aMenu addItemWithTitle:@"No Bundles Loaded" action:@selector(nop:) keyEquivalent:@""];
-}
-
 - (void)languageMenuNeedsUpdate:(NSMenu*)aMenu
 {
 	D(DBF_AppController_Menus, bug("\n"););
@@ -69,38 +35,65 @@ static bool bundle_has_grammar (bundles::item_ptr const& bundle)
 	// Find the grammar bundle for the current document's scope
 	std::string const fullScope = to_s(scope.left);
 	std::string const rootScope = fullScope.substr(0, fullScope.find(' '));
+	std::string currentBundleUUID;
+
 	if(rootScope.empty())
 	{
 		[aMenu addItemWithTitle:@"No Language" action:@selector(nop:) keyEquivalent:@""];
-		return;
 	}
-
-	bundles::item_ptr grammarItem;
-	for(auto const& item : bundles::query(bundles::kFieldGrammarScope, rootScope, scope::wildcard, bundles::kItemTypeGrammar))
+	else
 	{
-		grammarItem = item;
-		break;
+		bundles::item_ptr grammarItem;
+		for(auto const& item : bundles::query(bundles::kFieldGrammarScope, rootScope, scope::wildcard, bundles::kItemTypeGrammar))
+		{
+			grammarItem = item;
+			break;
+		}
+
+		if(grammarItem)
+		{
+			bundles::item_ptr bundle = bundles::lookup(grammarItem->bundle_uuid());
+			if(bundle && !bundle->menu().empty())
+			{
+				currentBundleUUID = bundle->uuid();
+				NSString* savedTitle = aMenu.title;
+				aMenu.title = [NSString stringWithCxxString:currentBundleUUID];
+				[[BundleMenuDelegate sharedInstance] menuNeedsUpdate:aMenu];
+				aMenu.title = savedTitle;
+			}
+		}
 	}
 
-	if(!grammarItem)
+	// Append "always show" bundles after a separator
+	NSArray* alwaysShowUUIDs = [[NSUserDefaults standardUserDefaults] arrayForKey:@"alwaysShowBundlesInLanguageMenu"] ?: @[];
+	NSSet* alwaysShowSet = [NSSet setWithArray:alwaysShowUUIDs];
+
+	std::multimap<std::string, bundles::item_ptr, text::less_t> ordered;
+	for(auto const& item : bundles::query(bundles::kFieldAny, NULL_STR, scope::wildcard, bundles::kItemTypeBundle))
+		ordered.emplace(item->name(), item);
+
+	bool addedSeparator = false;
+	for(auto const& pair : ordered)
 	{
-		[aMenu addItemWithTitle:@"No Language" action:@selector(nop:) keyEquivalent:@""];
-		return;
-	}
+		if(pair.second->menu().empty())
+			continue;
 
-	// Find the bundle that owns this grammar
-	bundles::item_ptr bundle = bundles::lookup(grammarItem->bundle_uuid());
-	if(!bundle || bundle->menu().empty())
-	{
-		[aMenu addItemWithTitle:[NSString stringWithCxxString:grammarItem->name()] action:@selector(nop:) keyEquivalent:@""];
-		return;
-	}
+		if(![alwaysShowSet containsObject:[NSString stringWithCxxString:pair.second->uuid()]])
+			continue;
 
-	// Temporarily set the menu title to the bundle UUID so BundleMenuDelegate can look it up
-	NSString* savedTitle = aMenu.title;
-	aMenu.title = [NSString stringWithCxxString:bundle->uuid()];
-	[[BundleMenuDelegate sharedInstance] menuNeedsUpdate:aMenu];
-	aMenu.title = savedTitle;
+		if(pair.second->uuid() == currentBundleUUID)
+			continue;
+
+		if(!addedSeparator)
+		{
+			[aMenu addItem:[NSMenuItem separatorItem]];
+			addedSeparator = true;
+		}
+
+		NSMenuItem* menuItem = [aMenu addItemWithTitle:[NSString stringWithCxxString:pair.first] action:NULL keyEquivalent:@""];
+		menuItem.submenu = [[NSMenu alloc] initWithTitle:[NSString stringWithCxxString:pair.second->uuid()]];
+		menuItem.submenu.delegate = [BundleMenuDelegate sharedInstance];
+	}
 }
 
 - (void)themesMenuNeedsUpdate:(NSMenu*)aMenu
@@ -165,9 +158,7 @@ static bool bundle_has_grammar (bundles::item_ptr const& bundle)
 
 - (void)menuNeedsUpdate:(NSMenu*)aMenu
 {
-	if(aMenu == bundlesMenu)
-		[self bundlesMenuNeedsUpdate:aMenu];
-	else if(aMenu == languageMenu)
+	if(aMenu == languageMenu)
 		[self languageMenuNeedsUpdate:aMenu];
 	else if(aMenu == themesMenu)
 		[self themesMenuNeedsUpdate:aMenu];

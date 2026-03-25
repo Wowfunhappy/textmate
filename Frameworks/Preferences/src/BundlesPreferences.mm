@@ -9,6 +9,7 @@
 #import <text/case.h>
 #import <text/ctype.h>
 #import <text/decode.h>
+#import <bundles/bundles.h>
 
 static NSMutableSet* BundlesBeingInstalled = [NSMutableSet set];
 
@@ -62,6 +63,40 @@ static NSMutableSet* BundlesBeingInstalled = [NSMutableSet set];
 }
 @end
 
+static NSString* const kAlwaysShowBundlesKey = @"alwaysShowBundlesInLanguageMenu";
+
+@interface Bundle (AlwaysShowInLanguageMenu)
+@property (nonatomic) BOOL alwaysShowInLanguageMenu;
+@end
+
+@implementation Bundle (AlwaysShowInLanguageMenu)
+- (BOOL)alwaysShowInLanguageMenu
+{
+	NSArray* uuids = [[NSUserDefaults standardUserDefaults] arrayForKey:kAlwaysShowBundlesKey] ?: @[];
+	return [uuids containsObject:self.identifier.UUIDString];
+}
+
+- (void)setAlwaysShowInLanguageMenu:(BOOL)flag
+{
+	if(!self.isInstalled)
+		return;
+
+	if(bundles::item_ptr item = bundles::lookup(to_s(self.identifier.UUIDString)))
+	{
+		if(item->menu().empty())
+			return;
+	}
+
+	NSMutableArray* uuids = [([[NSUserDefaults standardUserDefaults] arrayForKey:kAlwaysShowBundlesKey] ?: @[]) mutableCopy];
+	NSString* uuid = self.identifier.UUIDString;
+	if(flag && ![uuids containsObject:uuid])
+		[uuids addObject:uuid];
+	else if(!flag)
+		[uuids removeObject:uuid];
+	[[NSUserDefaults standardUserDefaults] setObject:uuids forKey:kAlwaysShowBundlesKey];
+}
+@end
+
 @interface BundlesPreferences ()
 {
 	NSMutableSet* enabledCategories;
@@ -89,6 +124,8 @@ static NSMutableSet* BundlesBeingInstalled = [NSMutableSet set];
 
 - (void)awakeFromNib
 {
+	[bundlesTableView tableColumnWithIdentifier:@"installed"].headerToolTip = @"Bundle installed";
+	[bundlesTableView tableColumnWithIdentifier:@"alwaysShow"].headerToolTip = @"Always show in Language menu";
 	[bundlesTableView setIndicatorImage:[NSImage imageNamed:@"NSAscendingSortIndicator"] inTableColumn:[bundlesTableView tableColumnWithIdentifier:@"name"]];
 	arrayController.sortDescriptors = @[
 		[NSSortDescriptor sortDescriptorWithKey:@"name" ascending:YES selector:@selector(localizedCompare:)],
@@ -212,6 +249,17 @@ static NSMutableSet* BundlesBeingInstalled = [NSMutableSet set];
 		Bundle* bundle = arrayController.arrangedObjects[rowIndex];
 		[aCell setEnabled:!bundle.isMandatory || !bundle.isInstalled];
 	}
+	else if([[aTableColumn identifier] isEqualToString:@"alwaysShow"])
+	{
+		Bundle* bundle = arrayController.arrangedObjects[rowIndex];
+		BOOL hasMenu = NO;
+		if(bundle.isInstalled)
+		{
+			if(bundles::item_ptr item = bundles::lookup(to_s(bundle.identifier.UUIDString)))
+				hasMenu = !item->menu().empty();
+		}
+		[aCell setEnabled:hasMenu];
+	}
 }
 
 - (BOOL)tableView:(NSTableView*)aTableView shouldEditTableColumn:(NSTableColumn*)aTableColumn row:(NSInteger)rowIndex
@@ -221,13 +269,27 @@ static NSMutableSet* BundlesBeingInstalled = [NSMutableSet set];
 		Bundle* bundle = arrayController.arrangedObjects[rowIndex];
 		return bundle.isInstalled != -1;
 	}
+	if([[aTableColumn identifier] isEqualToString:@"alwaysShow"])
+	{
+		Bundle* bundle = arrayController.arrangedObjects[rowIndex];
+		return bundle.isInstalled;
+	}
 	return NO;
 }
 
 - (BOOL)tableView:(NSTableView*)aTableView shouldSelectRow:(NSInteger)rowIndex
 {
 	NSInteger clickedColumn = [aTableView clickedColumn];
-	return clickedColumn != [aTableView columnWithIdentifier:@"installed"] && clickedColumn != [aTableView columnWithIdentifier:@"link"];
+	return clickedColumn != [aTableView columnWithIdentifier:@"installed"] && clickedColumn != [aTableView columnWithIdentifier:@"link"] && clickedColumn != [aTableView columnWithIdentifier:@"alwaysShow"];
+}
+
+- (NSString*)tableView:(NSTableView*)aTableView toolTipForCell:(NSCell*)aCell rect:(NSRectPointer)rect tableColumn:(NSTableColumn*)aTableColumn row:(NSInteger)row mouseLocation:(NSPoint)mouseLocation
+{
+	if([[aTableColumn identifier] isEqualToString:@"installed"])
+		return @"Bundle installed";
+	if([[aTableColumn identifier] isEqualToString:@"alwaysShow"])
+		return @"Always show in Language menu";
+	return nil;
 }
 
 - (IBAction)didClickBundleLink:(NSTableView*)aTableView

@@ -41,7 +41,7 @@
                                 <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
                                 <color key="gridColor" name="gridColor" catalog="System" colorSpace="catalog"/>
                                 <tableColumns>
-                                    <tableColumn identifier="installed" width="16" minWidth="16" maxWidth="16" id="8">
+                                    <tableColumn identifier="installed" width="16" minWidth="16" maxWidth="16" headerToolTip="Bundle installed" id="8">
                                         <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left">
                                             <font key="font" metaFont="smallSystem"/>
                                             <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
@@ -123,6 +123,20 @@
                                             <binding destination="Ia6-Ek-fpN" name="value" keyPath="arrangedObjects.textSummary" id="rGo-yn-U8q"/>
                                         </connections>
                                     </tableColumn>
+                                    <tableColumn identifier="alwaysShow" width="16" minWidth="16" maxWidth="16" headerToolTip="Always show in Language menu" id="alwaysShowCol">
+                                        <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="center" title="">
+                                            <font key="font" metaFont="smallSystem"/>
+                                            <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
+                                        </tableHeaderCell>
+                                        <buttonCell key="dataCell" controlSize="small" type="check" title="" bezelStyle="regularSquare" imagePosition="only" alignment="center" inset="2" id="alwaysShowCell">
+                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="smallSystem"/>
+                                        </buttonCell>
+                                        <connections>
+                                            <binding destination="Ia6-Ek-fpN" name="value" keyPath="arrangedObjects.alwaysShowInLanguageMenu" id="alwaysShowBinding"/>
+                                        </connections>
+                                    </tableColumn>
                                 </tableColumns>
                                 <connections>
                                     <binding destination="Ia6-Ek-fpN" name="content" keyPath="arrangedObjects" id="F1H-LM-ntF"/>
@@ -159,6 +173,17 @@
                             </binding>
                         </connections>
                     </buttonCell>
+                </button>
+                <button id="editBundlesButton">
+                    <rect key="frame" x="348" y="13" width="120" height="28"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMaxY="YES"/>
+                    <buttonCell key="cell" type="push" title="Edit Bundles…" bezelStyle="rounded" alignment="center" borderStyle="border" id="editBundlesButtonCell">
+                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="system"/>
+                    </buttonCell>
+                    <connections>
+                        <action selector="showBundleEditor:" target="-1" id="editBundlesAction"/>
+                    </connections>
                 </button>
             </subviews>
             <point key="canvasLocation" x="581" y="429"/>

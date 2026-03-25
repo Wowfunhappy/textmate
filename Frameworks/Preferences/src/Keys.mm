@@ -32,6 +32,7 @@ static NSDictionary* default_settings ()
 		kUserDefaultsRMateServerPortKey:         @"52698",
 		kUserDefaultsLicenseOwnerKey:            NSFullUserName(),
 		kUserDefaultsLineNumbersKey:             @YES,
+		@"alwaysShowBundlesInLanguageMenu":      @[ @"4F45FDC0-62CA-4786-9134-8BC7C1F5606F" ], // Source bundle
 	};
 }
 
