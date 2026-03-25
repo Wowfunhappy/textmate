@@ -72,6 +72,13 @@ static NSString* const kAlwaysShowBundlesKey = @"alwaysShowBundlesInLanguageMenu
 @implementation Bundle (AlwaysShowInLanguageMenu)
 - (BOOL)alwaysShowInLanguageMenu
 {
+	if(!self.isInstalled)
+		return NO;
+	if(bundles::item_ptr item = bundles::lookup(to_s(self.identifier.UUIDString)))
+	{
+		if(item->menu().empty())
+			return NO;
+	}
 	NSArray* uuids = [[NSUserDefaults standardUserDefaults] arrayForKey:kAlwaysShowBundlesKey] ?: @[];
 	return [uuids containsObject:self.identifier.UUIDString];
 }
