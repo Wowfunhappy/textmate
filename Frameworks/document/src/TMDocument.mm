@@ -2,6 +2,7 @@
 #import "TMDocumentRegistry.h"
 #import "TMWindowController.h"
 #import "OakDocumentController.h"
+#import "OakDocument Private.h"
 #import <oak/debug.h>
 #import <oak/algorithm.h>
 #import <file/encoding.h>
@@ -107,6 +108,7 @@ OAK_DEBUG_VAR(TMDocument);
 		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(oakDocumentDidReload:) name:OakDocumentDidReloadNotification object:oakDocument];
 		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(oakDocumentWillClose:) name:OakDocumentWillCloseNotification object:oakDocument];
 
+
 		[oakDocument addObserver:self forKeyPath:@"path" options:NSKeyValueObservingOptionNew context:nullptr];
 
 		// Register with NSDocumentController for autosaving to work
@@ -149,6 +151,7 @@ OAK_DEBUG_VAR(TMDocument);
 	// Update file modification date so Versions can snapshot the new state
 	if(self.fileURL)
 	{
+		[self.fileURL removeCachedResourceValueForKey:NSURLContentModificationDateKey];
 		NSDate* modDate = nil;
 		[self.fileURL getResourceValue:&modDate forKey:NSURLContentModificationDateKey error:nil];
 		if(modDate)
@@ -165,6 +168,7 @@ OAK_DEBUG_VAR(TMDocument);
 	// there's a conflict when it next tries to save.
 	if(self.fileURL)
 	{
+		[self.fileURL removeCachedResourceValueForKey:NSURLContentModificationDateKey];
 		NSDate* modDate = nil;
 		[self.fileURL getResourceValue:&modDate forKey:NSURLContentModificationDateKey error:nil];
 		if(modDate)
@@ -259,11 +263,23 @@ OAK_DEBUG_VAR(TMDocument);
 {
 	D(DBF_TMDocument, bug("%s url=%s type=%s op=%ld\n", self.oakDocument.displayName.UTF8String, url.path.UTF8String, typeName.UTF8String, (long)saveOperation););
 
+	// Sync fileModificationDate with disk before saving so NSDocument
+	// doesn't think the file was changed by another application
+	if(self.fileURL && saveOperation != NSAutosaveElsewhereOperation)
+	{
+		[self.fileURL removeCachedResourceValueForKey:NSURLContentModificationDateKey];
+		NSDate* modDate = nil;
+		[self.fileURL getResourceValue:&modDate forKey:NSURLContentModificationDateKey error:nil];
+		if(modDate)
+			self.fileModificationDate = modDate;
+	}
+
 	// Temporarily disable OakDocument's kqueue watcher so it doesn't
 	// interpret our own save as an external change
 	OakDocument* oakDoc = self.oakDocument;
 	BOOL wasObserving = oakDoc.observeFileSystem;
 	oakDoc.observeFileSystem = NO;
+
 
 	OakDocument* __weak weakOakDoc = oakDoc;
 	[super saveToURL:url ofType:typeName forSaveOperation:saveOperation completionHandler:^(NSError* errorOrNil){
@@ -273,8 +289,13 @@ OAK_DEBUG_VAR(TMDocument);
 			if(strongOakDoc && strongOakDoc.isLoaded)
 				[strongOakDoc markDocumentSaved];
 		}
-		if(strongOakDoc && wasObserving)
-			strongOakDoc.observeFileSystem = YES;
+		if(strongOakDoc)
+		{
+			if(!errorOrNil && strongOakDoc.isLoaded)
+				[strongOakDoc snapshot];
+			if(wasObserving)
+				strongOakDoc.observeFileSystem = YES;
+		}
 		completionHandler(errorOrNil);
 	}];
 }

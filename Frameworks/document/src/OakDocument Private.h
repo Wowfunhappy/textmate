@@ -11,4 +11,5 @@
 - (ng::undo_manager_t&)undoManager;
 
 - (BOOL)performReplacements:(std::multimap<std::pair<size_t, size_t>, std::string> const&)someReplacements checksum:(uint32_t)crc32;
+- (void)snapshot;
 @end

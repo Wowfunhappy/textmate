@@ -3012,6 +3012,8 @@
 			<string>TextMate Snippet</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.macromates.textmate.snippet</string>
+			<key>UTTypeIconFile</key>
+			<string>TextMate Snippet</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -3029,6 +3031,8 @@
 			<string>TextMate Macro</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.macromates.textmate.macro</string>
+			<key>UTTypeIconFile</key>
+			<string>TextMate Macro</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -3046,6 +3050,8 @@
 			<string>TextMate Language Grammar</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.macromates.textmate.language</string>
+			<key>UTTypeIconFile</key>
+			<string>TextMate Grammar</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -3063,6 +3069,8 @@
 			<string>TextMate Preferences</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.macromates.textmate.preferences</string>
+			<key>UTTypeIconFile</key>
+			<string>TextMate Settings</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -3080,6 +3088,8 @@
 			<string>TextMate Command</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.macromates.textmate.command</string>
+			<key>UTTypeIconFile</key>
+			<string>TextMate Command</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -3097,6 +3107,8 @@
 			<string>TextMate Drag Command</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.macromates.textmate.drag-command</string>
+			<key>UTTypeIconFile</key>
+			<string>TextMate Command</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -3114,6 +3126,8 @@
 			<string>TextMate Theme</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.macromates.textmate.theme</string>
+			<key>UTTypeIconFile</key>
+			<string>TextMate Theme</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -3132,6 +3146,8 @@
 			<string>TextMate release notes</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.macromates.textmate.release-notes</string>
+			<key>UTTypeIconFile</key>
+			<string>TextMate Bundle Item</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -3149,6 +3165,8 @@
 			<string>TextMate Bundle</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.macromates.textmate.bundle</string>
+			<key>UTTypeIconFile</key>
+			<string>TextMate Bundle</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -3167,6 +3185,8 @@
 			<string>TextMate PlugIn</string>
 			<key>UTTypeIdentifier</key>
 			<string>com.macromates.textmate.plugin</string>
+			<key>UTTypeIconFile</key>
+			<string>TextMate PlugIn</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
