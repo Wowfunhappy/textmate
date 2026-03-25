@@ -61,6 +61,16 @@ namespace oak
 		res.emplace("TM_FULLNAME",       entry->pw_gecos ?: "John Doe");
 		res.emplace("TM_PID",            std::to_string(getpid()));
 
+		if(CFURLRef bundleURL = CFBundleCopyBundleURL(CFBundleGetMainBundle()))
+		{
+			if(CFStringRef bundlePath = CFURLCopyFileSystemPath(bundleURL, kCFURLPOSIXPathStyle))
+			{
+				res.emplace("TM_APP_PATH", cf::to_s(bundlePath));
+				CFRelease(bundlePath);
+			}
+			CFRelease(bundleURL);
+		}
+
 		return res;
 	}
 
