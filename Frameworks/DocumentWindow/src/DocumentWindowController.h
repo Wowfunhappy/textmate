@@ -82,7 +82,6 @@ PUBLIC @interface DocumentWindowController : NSResponder
 - (IBAction)goToComputer:(id)sender;
 - (IBAction)goToHome:(id)sender;
 - (IBAction)goToDesktop:(id)sender;
-- (IBAction)goToFavorites:(id)sender;
 - (IBAction)goToSCMDataSource:(id)sender;
 - (IBAction)orderFrontGoToFolder:(id)sender;
 

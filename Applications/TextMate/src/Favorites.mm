@@ -3,29 +3,19 @@
 #import <OakAppKit/OakAppKit.h>
 #import <OakAppKit/OakFileIconImage.h>
 #import <OakAppKit/OakUIConstructionFunctions.h>
-#import <OakAppKit/OakScopeBarView.h>
 #import <OakAppKit/OakSound.h>
 #import <OakFoundation/NSString Additions.h>
-#import <OakSystem/application.h>
 #import <text/ranker.h>
-#import <io/entries.h>
 #import <text/case.h>
 #import <text/ctype.h>
 #import <io/path.h>
 #import <ns/ns.h>
 #import <kvdb/kvdb.h>
 
-static NSString* const kUserDefaultsOpenProjectSourceIndex = @"openProjectSourceIndex";
-
-static NSUInteger const kOakSourceIndexRecentProjects = 0;
-static NSUInteger const kOakSourceIndexFavorites      = 1;
-
 @interface FavoriteChooser ()
 {
 	NSMutableArray* _originalItems;
 }
-@property (nonatomic) NSInteger sourceIndex;
-@property (nonatomic) NSArray* sourceListLabels;
 @end
 
 @implementation FavoriteChooser
@@ -33,13 +23,6 @@ static NSUInteger const kOakSourceIndexFavorites      = 1;
 {
 	static FavoriteChooser* sharedInstance = [self new];
 	return sharedInstance;
-}
-
-+ (void)initialize
-{
-	[[NSUserDefaults standardUserDefaults] registerDefaults:@{
-		kUserDefaultsOpenProjectSourceIndex: @0,
-	}];
 }
 
 - (KVDB*)sharedProjectStateDB
@@ -52,9 +35,6 @@ static NSUInteger const kOakSourceIndexFavorites      = 1;
 {
 	if((self = [super init]))
 	{
-		_sourceIndex      = NSNotFound;
-		_sourceListLabels = @[ @"Recent Projects", @"Favorites" ];
-
 		self.window.title = @"Open Recent Project";
 		self.tableView.allowsTypeSelect = NO;
 		self.tableView.allowsMultipleSelection = YES;
@@ -66,19 +46,11 @@ static NSUInteger const kOakSourceIndexFavorites      = 1;
 		self.tableView.nextResponder = self;
 		self.nextResponder = nextResponder;
 
-		OakScopeBarView* scopeBar = [OakScopeBarView new];
-		scopeBar.labels = self.sourceListLabels;
-
-		OakBackgroundFillView* aboveScopeBarDark  = OakCreateHorizontalLine([NSColor grayColor], [NSColor lightGrayColor]);
-		OakBackgroundFillView* aboveScopeBarLight = OakCreateHorizontalLine([NSColor colorWithCalibratedWhite:0.797 alpha:1], [NSColor colorWithCalibratedWhite:0.912 alpha:1]);
-		OakBackgroundFillView* topDivider         = OakCreateHorizontalLine([NSColor darkGrayColor], [NSColor colorWithCalibratedWhite:0.551 alpha:1]);
-		OakBackgroundFillView* bottomDivider      = OakCreateHorizontalLine([NSColor grayColor], [NSColor lightGrayColor]);
+		OakBackgroundFillView* topDivider    = OakCreateHorizontalLine([NSColor darkGrayColor], [NSColor colorWithCalibratedWhite:0.551 alpha:1]);
+		OakBackgroundFillView* bottomDivider = OakCreateHorizontalLine([NSColor grayColor], [NSColor lightGrayColor]);
 
 		NSDictionary* views = @{
 			@"searchField":        self.searchField,
-			@"aboveScopeBarDark":  aboveScopeBarDark,
-			@"aboveScopeBarLight": aboveScopeBarLight,
-			@"scopeBar":           scopeBar,
 			@"topDivider":         topDivider,
 			@"scrollView":         self.scrollView,
 			@"bottomDivider":      bottomDivider,
@@ -88,28 +60,20 @@ static NSUInteger const kOakSourceIndexFavorites      = 1;
 
 		NSView* contentView = self.window.contentView;
 		OakAddAutoLayoutViewsToSuperview([views allValues], contentView);
-		OakSetupKeyViewLoop(@[ self.tableView, self.searchField, scopeBar ]);
+		OakSetupKeyViewLoop(@[ self.tableView, self.searchField ]);
 
 		[contentView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-(8)-[searchField(>=50)]-(8)-|"                      options:0 metrics:nil views:views]];
-		[contentView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|[aboveScopeBarDark(==aboveScopeBarLight)]|"          options:0 metrics:nil views:views]];
-		[contentView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-(8)-[scopeBar]-(>=8)-|"                             options:NSLayoutFormatAlignAllBaseline metrics:nil views:views]];
 		[contentView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|[scrollView(==topDivider,==bottomDivider)]|"         options:0 metrics:nil views:views]];
 		[contentView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-[statusTextField]-[itemCountTextField]-|"           options:NSLayoutFormatAlignAllCenterY metrics:nil views:views]];
 
-		[contentView addConstraint:[NSLayoutConstraint constraintWithItem:aboveScopeBarLight attribute:NSLayoutAttributeLeft relatedBy:NSLayoutRelationEqual toItem:contentView attribute:NSLayoutAttributeLeft multiplier:1.0 constant:0.0]];
-		[contentView addConstraint:[NSLayoutConstraint constraintWithItem:topDivider         attribute:NSLayoutAttributeLeft relatedBy:NSLayoutRelationEqual toItem:contentView attribute:NSLayoutAttributeLeft multiplier:1.0 constant:0.0]];
-		[contentView addConstraint:[NSLayoutConstraint constraintWithItem:bottomDivider      attribute:NSLayoutAttributeLeft relatedBy:NSLayoutRelationEqual toItem:contentView attribute:NSLayoutAttributeLeft multiplier:1.0 constant:0.0]];
+		[contentView addConstraint:[NSLayoutConstraint constraintWithItem:topDivider    attribute:NSLayoutAttributeLeft relatedBy:NSLayoutRelationEqual toItem:contentView attribute:NSLayoutAttributeLeft multiplier:1.0 constant:0.0]];
+		[contentView addConstraint:[NSLayoutConstraint constraintWithItem:bottomDivider attribute:NSLayoutAttributeLeft relatedBy:NSLayoutRelationEqual toItem:contentView attribute:NSLayoutAttributeLeft multiplier:1.0 constant:0.0]];
 
-		[contentView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-(2)-[searchField]-(8)-[aboveScopeBarDark][aboveScopeBarLight]-(3)-[scopeBar]-(4)-[topDivider][scrollView(>=50)][bottomDivider]-(4)-[statusTextField]-(5)-|" options:0 metrics:nil views:views]];
-
-		self.sourceIndex = [[NSUserDefaults standardUserDefaults] integerForKey:kUserDefaultsOpenProjectSourceIndex];
-		[scopeBar bind:NSValueBinding toObject:self withKeyPath:@"sourceIndex" options:nil];
+		[contentView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-(2)-[searchField]-(8)-[topDivider][scrollView(>=50)][bottomDivider]-(4)-[statusTextField]-(5)-|" options:0 metrics:nil views:views]];
 	}
 	return self;
 }
 
-- (IBAction)selectNextTab:(id)sender     { self.sourceIndex = (self.sourceIndex + 1) % self.sourceListLabels.count; }
-- (IBAction)selectPreviousTab:(id)sender { self.sourceIndex = (self.sourceIndex + self.sourceListLabels.count - 1) % self.sourceListLabels.count; }
 
 - (NSView*)tableView:(NSTableView*)aTableView viewForTableColumn:(NSTableColumn*)aTableColumn row:(NSInteger)row
 {
@@ -135,73 +99,13 @@ static NSUInteger const kOakSourceIndexFavorites      = 1;
 	return res;
 }
 
-- (void)setSourceIndex:(NSInteger)newIndex
-{
-	if(_sourceIndex == newIndex)
-		return;
-
-	_sourceIndex = newIndex;
-	[self loadItems:self];
-	[self updateItems:self];
-	[[NSUserDefaults standardUserDefaults] setInteger:newIndex forKey:kUserDefaultsOpenProjectSourceIndex];
-}
-
 - (void)loadItems:(id)sender
 {
 	NSMutableArray* items = [NSMutableArray new];
-	if(_sourceIndex == kOakSourceIndexRecentProjects)
+	for(id pair in [[[self sharedProjectStateDB] allObjects] sortedArrayUsingDescriptors:@[ [NSSortDescriptor sortDescriptorWithKey:@"value.lastRecentlyUsed" ascending:NO], [NSSortDescriptor sortDescriptorWithKey:@"key.lastPathComponent" ascending:YES selector:@selector(localizedCompare:)] ]])
 	{
-		std::vector<std::string> paths;
-		for(id pair in [[[self sharedProjectStateDB] allObjects] sortedArrayUsingDescriptors:@[ [NSSortDescriptor sortDescriptorWithKey:@"value.lastRecentlyUsed" ascending:NO], [NSSortDescriptor sortDescriptorWithKey:@"key.lastPathComponent" ascending:YES selector:@selector(localizedCompare:)] ]])
-		{
-			if(access([pair[@"key"] fileSystemRepresentation], F_OK) == 0)
-				[items addObject:@{ @"path": pair[@"key"] }];
-		}
-	}
-	else if(_sourceIndex == kOakSourceIndexFavorites)
-	{
-		std::string const favoritesPath = oak::application_t::support("Favorites");
-		for(auto const& entry : path::entries(favoritesPath))
-		{
-			if(entry->d_type == DT_LNK)
-			{
-				std::string const path = path::resolve(path::join(favoritesPath, entry->d_name));
-				if(strncmp("[DIR] ", entry->d_name, 6) == 0)
-				{
-					bool includeSymlinkName = path::name(path) != std::string(entry->d_name + 6);
-					for(auto const& subentry : path::entries(path))
-					{
-						if(subentry->d_type == DT_DIR)
-						{
-							NSMutableDictionary* item = [NSMutableDictionary dictionaryWithDictionary:@{
-								@"path":             [NSString stringWithCxxString:path::join(path, subentry->d_name)],
-								@"isRemoveDisabled": @YES
-							}];
-
-							if(includeSymlinkName)
-								item[@"name"] = [NSString stringWithFormat:@"%s — %s", subentry->d_name, entry->d_name + 6];
-
-							[items addObject:item];
-						}
-					}
-				}
-				else
-				{
-					NSMutableDictionary* item = [NSMutableDictionary dictionaryWithDictionary:@{
-						@"path": [NSString stringWithCxxString:path],
-						@"link": [NSString stringWithCxxString:path::join(favoritesPath, entry->d_name)]
-					}];
-
-					if(path::name(path) != entry->d_name)
-					{
-						item[@"name"]   = [NSString stringWithCxxString:entry->d_name];
-						item[@"folder"] = [item[@"path"] stringByAbbreviatingWithTildeInPath];
-					}
-
-					[items addObject:item];
-				}
-			}
-		}
+		if(access([pair[@"key"] fileSystemRepresentation], F_OK) == 0)
+			[items addObject:@{ @"path": pair[@"key"] }];
 	}
 
 	_originalItems = [NSMutableArray new];
@@ -217,9 +121,6 @@ static NSUInteger const kOakSourceIndexFavorites      = 1;
 		}];
 		[_originalItems addObject:tmp];
 	}
-
-	if(_sourceIndex == kOakSourceIndexFavorites)
-		_originalItems = [[_originalItems sortedArrayUsingDescriptors:@[ [NSSortDescriptor sortDescriptorWithKey:@"name" ascending:YES selector:@selector(localizedCompare:)] ]] mutableCopy];
 }
 
 - (void)showWindow:(id)sender
@@ -307,19 +208,13 @@ static NSUInteger const kOakSourceIndexFavorites      = 1;
 - (NSUInteger)removeItemsAtIndexes:(NSIndexSet*)anIndexSet
 {
 	NSMutableArray* items = [self.items mutableCopy];
-	anIndexSet = [anIndexSet indexesPassingTest:^BOOL(NSUInteger idx, BOOL* stop){
-		return ![items[idx][@"isRemoveDisabled"] boolValue];
-	}];
-
 	for(NSDictionary* item in [items objectsAtIndexes:anIndexSet])
 	{
-		if(NSString* link = item[@"link"])
-			[[NSFileManager defaultManager] trashItemAtURL:[NSURL fileURLWithPath:link] resultingItemURL:nil error:nil];
-		else if(NSString* path = item[@"path"])
+		if(NSString* path = item[@"path"])
 			[[self sharedProjectStateDB] removeObjectForKey:path];
 	}
 
-	[self loadItems:self]; // update originalItems
+	[self loadItems:self];
 	return [super removeItemsAtIndexes:anIndexSet];
 }
 
@@ -330,32 +225,6 @@ static NSUInteger const kOakSourceIndexFavorites      = 1;
 		[self removeItemsAtIndexes:[NSIndexSet indexSetWithIndex:row]];
 }
 
-- (void)takeSourceIndexFrom:(id)sender
-{
-	if([sender respondsToSelector:@selector(tag)])
-		self.sourceIndex = [sender tag];
-}
-
-- (void)updateSelectTabMenu:(NSMenu*)aMenu
-{
-	if(self.window.isKeyWindow)
-	{
-		[[aMenu addItemWithTitle:@"Recent Projects" action:@selector(takeSourceIndexFrom:) keyEquivalent:@"1"] setTag:kOakSourceIndexRecentProjects];
-		[[aMenu addItemWithTitle:@"Favorites" action:@selector(takeSourceIndexFrom:) keyEquivalent:@"2"] setTag:kOakSourceIndexFavorites];
-	}
-	else
-	{
-		[aMenu addItemWithTitle:@"No Sources" action:@selector(nop:) keyEquivalent:@""];
-	}
-}
-
-- (BOOL)validateMenuItem:(NSMenuItem*)item
-{
-	BOOL activate = YES;
-	if([item action] == @selector(takeSourceIndexFrom:))
-		[item setState:[item tag] == self.sourceIndex ? NSOnState : NSOffState];
-	return activate;
-}
 
 - (void)deleteForward:(id)sender
 {
