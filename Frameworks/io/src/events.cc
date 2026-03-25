@@ -128,7 +128,8 @@ namespace
 				FSEventStreamScheduleWithRunLoop(*stream, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
 				stream->set_replaying_history(eventId != kFSEventStreamEventIdSinceNow, path, eventId);
 				FSEventStreamStart(*stream);
-				FSEventStreamFlushSync(*stream);
+				if(eventId != kFSEventStreamEventIdSinceNow)
+					FSEventStreamFlushAsync(*stream);
 			}
 		}
 
