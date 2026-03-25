@@ -48,8 +48,6 @@ static BOOL IsProtocolRelativeURL (NSURL* url)
 
 - (void)webView:(WebView*)sender mouseDidMoveOverElement:(NSDictionary*)elementInformation modifierFlags:(NSUInteger)modifierFlags
 {
-	NSURL* url = [elementInformation objectForKey:@"WebElementLinkURL"];
-	[self webView:sender setStatusText:[[url absoluteString] stringByRemovingPercentEncoding]];
 }
 
 - (void)webView:(WebView*)sender runJavaScriptAlertPanelWithMessage:(NSString*)message initiatedByFrame:(WebFrame*)frame
