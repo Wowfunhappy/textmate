@@ -3,6 +3,11 @@
 #import "TMWindowController.h"
 #import "OakDocumentController.h"
 #import <oak/debug.h>
+#import <oak/algorithm.h>
+#import <file/encoding.h>
+#import <file/bytes.h>
+#import <text/newlines.h>
+#import <ns/ns.h>
 
 OAK_DEBUG_VAR(TMDocument);
 
@@ -141,6 +146,14 @@ OAK_DEBUG_VAR(TMDocument);
 - (void)oakDocumentDidSave:(NSNotification*)notification
 {
 	D(DBF_TMDocument, bug("%s\n", self.oakDocument.displayName.UTF8String););
+	// Update file modification date so Versions can snapshot the new state
+	if(self.fileURL)
+	{
+		NSDate* modDate = nil;
+		[self.fileURL getResourceValue:&modDate forKey:NSURLContentModificationDateKey error:nil];
+		if(modDate)
+			self.fileModificationDate = modDate;
+	}
 	[self updateChangeCount:NSChangeCleared];
 }
 
@@ -266,31 +279,97 @@ OAK_DEBUG_VAR(TMDocument);
 	}];
 }
 
+- (BOOL)writeToURL:(NSURL*)url ofType:(NSString*)typeName forSaveOperation:(NSSaveOperationType)saveOperation originalContentsURL:(NSURL*)absoluteOriginalContentsURL error:(NSError**)outError
+{
+	if(saveOperation == NSAutosaveElsewhereOperation)
+	{
+		// Crash recovery drafts: write raw UTF-8 buffer bytes.
+		// readFromData: also assumes UTF-8, so the round-trip is consistent.
+		return [super writeToURL:url ofType:typeName forSaveOperation:saveOperation originalContentsURL:absoluteOriginalContentsURL error:outError];
+	}
+
+	D(DBF_TMDocument, bug("%s url=%s op=%ld\n", self.oakDocument.displayName.UTF8String, url.path.UTF8String, (long)saveOperation););
+
+	// For saves to the actual file, convert encoding and newlines.
+	// The buffer stores UTF-8 with LF; the file may need different encoding/newlines.
+	OakDocument* oakDoc = self.oakDocument;
+
+	// Get raw UTF-8 LF buffer content
+	NSMutableData* rawData = [NSMutableData data];
+	[oakDoc enumerateByteRangesUsingBlock:^(char const* bytes, NSRange byteRange, BOOL* stop){
+		[rawData appendBytes:bytes length:byteRange.length];
+	}];
+
+	std::string content((char const*)[rawData bytes], [rawData length]);
+
+	// Convert LF to disk line endings (e.g. CRLF)
+	std::string newlines = to_s(oakDoc.diskNewlines);
+	if(!newlines.empty() && newlines != kLF)
+	{
+		std::string converted;
+		oak::replace_copy(content.begin(), content.end(), kLF.begin(), kLF.end(), newlines.begin(), newlines.end(), back_inserter(converted));
+		content.swap(converted);
+	}
+
+	// Convert UTF-8 to disk encoding (e.g. ISO-8859-1)
+	std::string charset = to_s(oakDoc.diskEncoding);
+	if(!charset.empty() && charset != kCharsetNoEncoding && charset != kCharsetUTF8)
+	{
+		auto utf8Bytes = std::make_shared<io::bytes_t>(content);
+		io::bytes_ptr encoded = encoding::convert(utf8Bytes, kCharsetUTF8, charset);
+		if(encoded)
+			content.assign(encoded->begin(), encoded->end());
+		// If conversion fails, write UTF-8 as fallback
+	}
+
+	NSData* data = [[NSData alloc] initWithBytesNoCopy:(void*)content.data() length:content.size() freeWhenDone:NO];
+	return [data writeToURL:url options:0 error:outError];
+}
+
 // MARK: - Revert (for Versions)
 
 - (BOOL)revertToContentsOfURL:(NSURL*)url ofType:(NSString*)typeName error:(NSError**)outError
 {
-	NSLog(@"TMDocument revertToContentsOfURL: %@ (type: %@)", url, typeName);
+	D(DBF_TMDocument, bug("url=%s type=%s\n", url.path.UTF8String, typeName.UTF8String););
 
 	NSData* data = [NSData dataWithContentsOfURL:url options:0 error:outError];
 	if(!data)
-	{
-		NSLog(@"TMDocument revertToContentsOfURL: failed to read data from %@", url);
 		return NO;
+
+	OakDocument* oakDoc = self.oakDocument;
+
+	// Decode the file data using the document's disk encoding.
+	// Versions snapshots the actual file on disk, which is in the
+	// original encoding. We need to convert back to UTF-8 for the buffer.
+	std::string charset = to_s(oakDoc.diskEncoding);
+	if(charset.empty() || charset == kCharsetNoEncoding)
+		charset = kCharsetUTF8;
+
+	auto bytes = std::make_shared<io::bytes_t>((char const*)[data bytes], [data length], false);
+	io::bytes_ptr utf8Bytes = encoding::convert(bytes, charset, kCharsetUTF8);
+	if(!utf8Bytes)
+	{
+		// Encoding conversion failed — try UTF-8 as fallback
+		utf8Bytes = bytes;
 	}
 
-	NSString* content = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+	// Convert line endings from disk format (e.g. CRLF) to LF for the buffer
+	std::string text(utf8Bytes->begin(), utf8Bytes->end());
+	std::string newlines = to_s(oakDoc.diskNewlines);
+	if(!newlines.empty() && newlines != kLF)
+	{
+		std::string normalized;
+		oak::replace_copy(text.begin(), text.end(), newlines.begin(), newlines.end(), kLF.begin(), kLF.end(), back_inserter(normalized));
+		text.swap(normalized);
+	}
+
+	NSString* content = [NSString stringWithUTF8String:text.c_str()];
 	if(!content)
 	{
-		NSLog(@"TMDocument revertToContentsOfURL: failed to decode as UTF-8");
 		if(outError)
 			*outError = [NSError errorWithDomain:NSCocoaErrorDomain code:NSFileReadUnknownStringEncodingError userInfo:nil];
 		return NO;
 	}
-
-	NSLog(@"TMDocument revertToContentsOfURL: loaded %lu bytes, setting content", (unsigned long)data.length);
-
-	OakDocument* oakDoc = self.oakDocument;
 
 	_reloading = YES;
 	[[NSNotificationCenter defaultCenter] postNotificationName:OakDocumentWillReloadNotification object:oakDoc];
@@ -302,7 +381,6 @@ OAK_DEBUG_VAR(TMDocument);
 	_reloading = NO;
 
 	[self updateChangeCount:NSChangeCleared];
-	NSLog(@"TMDocument revertToContentsOfURL: done");
 	return YES;
 }
 
