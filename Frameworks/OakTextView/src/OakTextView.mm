@@ -1219,12 +1219,24 @@ doScroll:
 	if(!documentView || !_textFinder)
 		return;
 
+	// Compute the visible character index range (with generous vertical padding)
+	// so we can skip rect_for_range() entirely for off-screen matches.
+	NSRect paddedVisible = NSInsetRect([self visibleRect], 0, -NSHeight([self visibleRect]));
+	CGPoint startPoint = NSMakePoint(NSMinX(paddedVisible), MAX(NSMinY(paddedVisible), 0));
+	CGPoint endPoint   = NSMakePoint(NSMaxX(paddedVisible), NSMaxY(paddedVisible));
+	size_t visibleFirst = documentView->index_at_point(startPoint).index;
+	size_t visibleLast  = documentView->index_at_point(endPoint).index;
+
 	// Use NSTextFinder's own match ranges — it already performed the search
 	// with the correct options, patterns, case sensitivity, etc.
 	NSArray* matchRanges = [_textFinder incrementalMatchRanges];
 	for(NSValue* value in matchRanges)
 	{
 		NSRange range = [value rangeValue];
+		// Skip matches entirely outside the visible character range
+		if(NSMaxRange(range) < visibleFirst || range.location > visibleLast)
+			continue;
+
 		ng::range_t r = [self rangeForNSRange:range];
 		NSRect rect = documentView->rect_for_range(r.min().index, r.max().index, true);
 		_findMatchRects.push_back(rect);

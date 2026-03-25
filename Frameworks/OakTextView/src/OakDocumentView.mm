@@ -370,6 +370,7 @@ static CGFloat const kShadowPadding = 4.0;
 	for(NSString* keyPath in self.observedKeys)
 		[_textView removeObserver:self forKeyPath:keyPath];
 	[[NSNotificationCenter defaultCenter] removeObserver:self];
+	[NSObject cancelPreviousPerformRequestsWithTarget:self];
 	[NSObject cancelPreviousPerformRequestsWithTarget:gutterView];
 
 	self.document = nil;
@@ -525,24 +526,53 @@ static CGFloat const kShadowPadding = 4.0;
 	else	[[NSUserDefaults standardUserDefaults] setObject:@YES forKey:@"DocumentView Disable Line Numbers"];
 }
 
-- (void)scrollViewDidScroll:(NSNotification*)notification
+- (void)deferredFindHighlightUpdate
 {
 	[_textView recomputeFindMatchRects];
 	[self updateFindHighlightWindow];
+}
+
+- (void)hideFindCutouts
+{
+	NSWindow* parentWindow = _textView.window;
+	for(NSWindow* child in parentWindow.childWindows)
+	{
+		if([NSStringFromClass([child class]) rangeOfString:@"TextFinderOverlay"].location != NSNotFound)
+		{
+			for(NSView* v in child.contentView.subviews)
+				if([v isKindOfClass:[OakFindCutoutView class]])
+					v.hidden = YES;
+			break;
+		}
+	}
+}
+
+- (void)scrollViewDidScroll:(NSNotification*)notification
+{
+	NSUInteger matchCount = [_textFinder incrementalMatchRanges].count;
+	if(matchCount < 5000)
+	{
+		[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(deferredFindHighlightUpdate) object:nil];
+		[_textView recomputeFindMatchRects];
+		[self updateFindHighlightWindow];
+	}
+	else
+	{
+		// Too many matches for synchronous updates — hide cutouts during
+		// scrolling and restore them once scrolling settles.
+		[self hideFindCutouts];
+		[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(deferredFindHighlightUpdate) object:nil];
+		NSArray* modes = @[ NSDefaultRunLoopMode, NSEventTrackingRunLoopMode ];
+		[self performSelector:@selector(deferredFindHighlightUpdate) withObject:nil afterDelay:0.1 inModes:modes];
+	}
 
 	// When the find bar height changes (e.g. Replace toggled), resync gutter
 	// with a delay to ensure the clip view frame is finalized
 	if([[notification name] isEqualToString:NSViewFrameDidChangeNotification])
 	{
-		__weak OakDocumentView* weakSelf = self;
 		GutterView* gutter = gutterView;
 		dispatch_async(dispatch_get_main_queue(), ^{
-			if(OakDocumentView* strongSelf = weakSelf)
-			{
-				[gutter resyncWithPartnerView];
-				[strongSelf->_textView recomputeFindMatchRects];
-				[strongSelf updateFindHighlightWindow];
-			}
+			[gutter resyncWithPartnerView];
 		});
 	}
 }
@@ -591,12 +621,15 @@ static CGFloat const kShadowPadding = 4.0;
 	// Apple's own drawRect uses [NSColor clearColor] + NSRectFill (which uses NSCompositeCopy)
 	// to punch holes. We do the same via subviews.
 	NSView* dimContentView = dimmingWindow.contentView;
+	BOOL isFlipped = [dimContentView isFlipped];
 
-	// Remove previous cutout views
-	for(NSView* v in [dimContentView.subviews copy])
+	// Collect existing cutout views for reuse
+	NSMutableArray<OakFindCutoutView*>* existingCutouts = [NSMutableArray array];
+	for(NSView* v in dimContentView.subviews)
 		if([v isKindOfClass:[OakFindCutoutView class]])
-			[v removeFromSuperview];
+			[existingCutouts addObject:(OakFindCutoutView*)v];
 
+	NSUInteger reuseIndex = 0;
 	for(auto const& matchRect : rects)
 	{
 		NSRect r = NSInsetRect(matchRect, -1, -1);
@@ -606,17 +639,30 @@ static CGFloat const kShadowPadding = 4.0;
 		screenRect = [parentWindow convertRectToScreen:screenRect];
 		NSRect dimRect = [dimmingWindow convertRectFromScreen:screenRect];
 
-		// If the dimming content view is flipped, flip Y
-		if([dimContentView isFlipped])
-		{
+		if(isFlipped)
 			dimRect.origin.y = dimContentView.bounds.size.height - dimRect.origin.y - dimRect.size.height;
-		}
 
 		// Expand frame to include shadow padding
 		NSRect cutoutFrame = NSInsetRect(dimRect, -OakFindCutoutView.shadowPadding, -OakFindCutoutView.shadowPadding);
-		OakFindCutoutView* cutout = [[OakFindCutoutView alloc] initWithFrame:cutoutFrame];
-		[dimContentView addSubview:cutout];
+
+		if(reuseIndex < existingCutouts.count)
+		{
+			OakFindCutoutView* cutout = existingCutouts[reuseIndex];
+			cutout.hidden = NO;
+			if(!NSEqualRects(cutout.frame, cutoutFrame))
+				cutout.frame = cutoutFrame;
+		}
+		else
+		{
+			OakFindCutoutView* cutout = [[OakFindCutoutView alloc] initWithFrame:cutoutFrame];
+			[dimContentView addSubview:cutout];
+		}
+		++reuseIndex;
 	}
+
+	// Remove excess cutout views
+	while(reuseIndex < existingCutouts.count)
+		[existingCutouts[reuseIndex++] removeFromSuperview];
 
 	[dimContentView setNeedsDisplay:YES];
 }
