@@ -71,7 +71,7 @@ static NSMutableSet* BundlesBeingInstalled = [NSMutableSet set];
 
 @implementation BundlesPreferences
 - (NSString*)viewIdentifier        { return @"Bundles"; }
-- (NSImage*)toolbarItemImage       { return [[NSWorkspace sharedWorkspace] iconForFileType:@"tmbundle"]; }
+- (NSImage*)toolbarItemImage       { return [[NSImage alloc] initWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"TextMate Bundle" ofType:@"icns"]]; }
 - (NSString*)toolbarItemLabel      { return @"Bundles"; }
 - (NSView*)initialKeyView          { return bundlesTableView; }
 

@@ -146,8 +146,8 @@
                     </tableHeaderView>
                 </scrollView>
                 <button id="OBQ-c3-10X">
-                    <rect key="frame" x="18" y="18" width="283" height="18"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMaxY="YES"/>
+                    <rect key="frame" x="18" y="18" width="400" height="18"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                     <buttonCell key="cell" type="check" title="Check for and install updates automatically" bezelStyle="regularSquare" imagePosition="left" alignment="left" state="on" inset="2" id="u7M-Kw-7bA">
                         <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                         <font key="font" metaFont="system"/>
