@@ -635,38 +635,47 @@ namespace
 				bundlesByPath[bundle.path] = bundle;
 		}
 
-		NSString* bundlesDir = [installDir stringByAppendingPathComponent:@"Bundles"];
-		for(auto const& entry : path::entries(to_s(bundlesDir), "*.tm[Bb]undle"))
+		NSMutableSet* scannedDirs = [NSMutableSet set];
+		NSMutableArray* bundlesDirs = [NSMutableArray arrayWithObject:[installDir stringByAppendingPathComponent:@"Bundles"]];
+		for(auto const& location : bundles::locations())
+			[bundlesDirs addObject:[NSString stringWithCxxString:path::join(location, "Bundles")]];
+
+		for(NSString* bundlesDir in bundlesDirs)
 		{
-			NSString* bundlePath = [bundlesDir stringByAppendingPathComponent:to_ns(entry->d_name)];
-			if(Bundle* bundle = [bundlesByPath objectForKey:bundlePath])
+			if([scannedDirs containsObject:bundlesDir])
+				continue;
+			[scannedDirs addObject:bundlesDir];
+
+			for(auto const& entry : path::entries(to_s(bundlesDir), "*.tm[Bb]undle"))
 			{
-				[bundlesByPath removeObjectForKey:bundlePath];
-				if(bundle.downloadURL) // We have category, description etc. from remote index
-					continue;
-			}
+				NSString* bundlePath = [bundlesDir stringByAppendingPathComponent:to_ns(entry->d_name)];
+				if(Bundle* bundle = [bundlesByPath objectForKey:bundlePath])
+				{
+					[bundlesByPath removeObjectForKey:bundlePath];
+					if(bundle.downloadURL) // We have category, description etc. from remote index
+						continue;
+				}
 
-			if(NSDictionary* info = [NSDictionary dictionaryWithContentsOfFile:[bundlePath stringByAppendingPathComponent:@"info.plist"]])
-			{
-				NSUUID* identifier = [[NSUUID alloc] initWithUUIDString:info[@"uuid"]];
-				Bundle* bundle = res[identifier] ?: [[Bundle alloc] initWithIdentifier:identifier];
+				if(NSDictionary* info = [NSDictionary dictionaryWithContentsOfFile:[bundlePath stringByAppendingPathComponent:@"info.plist"]])
+				{
+					NSUUID* identifier = [[NSUUID alloc] initWithUUIDString:info[@"uuid"]];
+					Bundle* bundle = res[identifier] ?: [[Bundle alloc] initWithIdentifier:identifier];
 
-				bundle.installed    = YES;
-				bundle.path         = bundlePath;
-				bundle.category     = bundle.category     ?: @"Orphaned";
-				bundle.name         = bundle.name         ?: info[@"name"];
-				bundle.contactName  = bundle.contactName  ?: info[@"contactName"];
-				bundle.contactEmail = bundle.contactEmail ?: to_ns(decode::rot13(to_s(info[@"contactEmailRot13"])));
-				bundle.summary      = bundle.summary      ?: info[@"description"];
+					bundle.installed    = YES;
+					bundle.path         = bundlePath;
+					bundle.category     = bundle.category     ?: @"Orphaned";
+					bundle.name         = bundle.name         ?: info[@"name"];
+					bundle.contactName  = bundle.contactName  ?: info[@"contactName"];
+					bundle.contactEmail = bundle.contactEmail ?: to_ns(decode::rot13(to_s(info[@"contactEmailRot13"])));
+					bundle.summary      = bundle.summary      ?: info[@"description"];
 
-				NSDateFormatter* dateFormatter = [[NSDateFormatter alloc] init];
-				dateFormatter.dateFormat = @"yyyy-MM-dd HH:mm:ss ZZZZZ";
-				if(NSString* str = to_ns(path::get_attr(to_s(bundlePath), kBundleAttributeUpdated)))
-					bundle.lastUpdated = [dateFormatter dateFromString:str];
+					NSDateFormatter* dateFormatter = [[NSDateFormatter alloc] init];
+					dateFormatter.dateFormat = @"yyyy-MM-dd HH:mm:ss ZZZZZ";
+					if(NSString* str = to_ns(path::get_attr(to_s(bundlePath), kBundleAttributeUpdated)))
+						bundle.lastUpdated = [dateFormatter dateFromString:str];
 
-				res[bundle.identifier] = bundle;
-
-				NSLog(@"Found: ‘%@’ missing in local index.", bundle.name);
+					res[bundle.identifier] = bundle;
+				}
 			}
 		}
 
