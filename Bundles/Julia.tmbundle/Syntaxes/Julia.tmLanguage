@@ -3,27 +3,24 @@
 <plist version="1.0">
 <dict>
 	<key>comment</key>
-	<string>
-	TODO:
-	* syntax types, tuple types, union
-	* take out ::Type
-	</string>
+	<string>This grammar is used by Atom (Oniguruma), GitHub (PCRE), and VSCode (Oniguruma),
+so all regexps must be compatible with both engines.
+
+Specs:
+- https://github.com/kkos/oniguruma/blob/master/doc/RE
+- https://www.pcre.org/current/doc/html/</string>
 	<key>fileTypes</key>
 	<array>
 		<string>jl</string>
 	</array>
+	<key>scopeName</key>
+	<string>source.julia</string>
 	<key>firstLineMatch</key>
 	<string>^#!.*\bjulia\s*$</string>
-	<key>keyEquivalent</key>
-	<string>^~J</string>
 	<key>name</key>
 	<string>Julia</string>
 	<key>patterns</key>
 	<array>
-		<dict>
-			<key>include</key>
-			<string>#symbol</string>
-		</dict>
 		<dict>
 			<key>include</key>
 			<string>#operator</string>
@@ -38,11 +35,11 @@
 		</dict>
 		<dict>
 			<key>include</key>
-			<string>#bracket</string>
+			<string>#parentheses</string>
 		</dict>
 		<dict>
 			<key>include</key>
-			<string>#type_decl</string>
+			<string>#bracket</string>
 		</dict>
 		<dict>
 			<key>include</key>
@@ -51,6 +48,10 @@
 		<dict>
 			<key>include</key>
 			<string>#function_call</string>
+		</dict>
+		<dict>
+			<key>include</key>
+			<string>#for_block</string>
 		</dict>
 		<dict>
 			<key>include</key>
@@ -64,6 +65,18 @@
 			<key>include</key>
 			<string>#comment</string>
 		</dict>
+		<dict>
+			<key>include</key>
+			<string>#type_decl</string>
+		</dict>
+		<dict>
+			<key>include</key>
+			<string>#symbol</string>
+		</dict>
+		<dict>
+			<key>include</key>
+			<string>#punctuation</string>
+		</dict>
 	</array>
 	<key>repository</key>
 	<dict>
@@ -74,11 +87,24 @@
 				<dict>
 					<key>begin</key>
 					<string>\[</string>
+					<key>beginCaptures</key>
+					<dict>
+						<key>0</key>
+						<dict>
+							<key>name</key>
+							<string>meta.bracket.julia</string>
+						</dict>
+					</dict>
 					<key>end</key>
-					<string>\]((\.)?'*)</string>
+					<string>(\])((?:\.)?'*)</string>
 					<key>endCaptures</key>
 					<dict>
 						<key>1</key>
+						<dict>
+							<key>name</key>
+							<string>meta.bracket.julia</string>
+						</dict>
+						<key>2</key>
 						<dict>
 							<key>name</key>
 							<string>keyword.operator.transpose.julia</string>
@@ -90,13 +116,59 @@
 					<array>
 						<dict>
 							<key>match</key>
+							<string>\bbegin\b</string>
+							<key>name</key>
+							<string>constant.numeric.julia</string>
+						</dict>
+						<dict>
+							<key>match</key>
 							<string>\bend\b</string>
 							<key>name</key>
 							<string>constant.numeric.julia</string>
 						</dict>
 						<dict>
 							<key>include</key>
-							<string>$self</string>
+							<string>#self_no_for_block</string>
+						</dict>
+					</array>
+				</dict>
+			</array>
+		</dict>
+		<key>parentheses</key>
+		<dict>
+			<key>patterns</key>
+			<array>
+				<dict>
+					<key>begin</key>
+					<string>\(</string>
+					<key>beginCaptures</key>
+					<dict>
+						<key>0</key>
+						<dict>
+							<key>name</key>
+							<string>meta.bracket.julia</string>
+						</dict>
+					</dict>
+					<key>end</key>
+					<string>(\))((?:\.)?'*)</string>
+					<key>endCaptures</key>
+					<dict>
+						<key>1</key>
+						<dict>
+							<key>name</key>
+							<string>meta.bracket.julia</string>
+						</dict>
+						<key>2</key>
+						<dict>
+							<key>name</key>
+							<string>keyword.operator.transpose.julia</string>
+						</dict>
+					</dict>
+					<key>patterns</key>
+					<array>
+						<dict>
+							<key>include</key>
+							<string>#self_no_for_block</string>
 						</dict>
 					</array>
 				</dict>
@@ -107,14 +179,105 @@
 			<key>patterns</key>
 			<array>
 				<dict>
+					<key>begin</key>
+					<string>\{</string>
+					<key>beginCaptures</key>
+					<dict>
+						<key>0</key>
+						<dict>
+							<key>name</key>
+							<string>meta.bracket.julia</string>
+						</dict>
+					</dict>
+					<key>end</key>
+					<string>(\})((?:\.)?'*)</string>
+					<key>endCaptures</key>
+					<dict>
+						<key>1</key>
+						<dict>
+							<key>name</key>
+							<string>meta.bracket.julia</string>
+						</dict>
+						<key>2</key>
+						<dict>
+							<key>name</key>
+							<string>keyword.operator.transpose.julia</string>
+						</dict>
+					</dict>
+					<key>patterns</key>
+					<array>
+						<dict>
+							<key>include</key>
+							<string>#self_no_for_block</string>
+						</dict>
+					</array>
+				</dict>
+			</array>
+		</dict>
+		<key>comment_tags</key>
+		<dict>
+			<key>patterns</key>
+			<array>
+				<dict>
 					<key>match</key>
-					<string>(?:\(|\)|\[|\]|\{|\}|,)(?!('|(?:\.'))*\.?')</string>
+					<string>\bTODO\b</string>
 					<key>name</key>
-					<string>meta.bracket.julia</string>
+					<string>keyword.other.comment-annotation.julia</string>
+				</dict>
+				<dict>
+					<key>match</key>
+					<string>\bFIXME\b</string>
+					<key>name</key>
+					<string>keyword.other.comment-annotation.julia</string>
+				</dict>
+				<dict>
+					<key>match</key>
+					<string>\bCHANGED\b</string>
+					<key>name</key>
+					<string>keyword.other.comment-annotation.julia</string>
+				</dict>
+				<dict>
+					<key>match</key>
+					<string>\bXXX\b</string>
+					<key>name</key>
+					<string>keyword.other.comment-annotation.julia</string>
 				</dict>
 			</array>
 		</dict>
 		<key>comment</key>
+		<dict>
+			<key>patterns</key>
+			<array>
+				<dict>
+					<key>include</key>
+					<string>#comment_block</string>
+				</dict>
+				<dict>
+					<key>begin</key>
+					<string>#</string>
+					<key>beginCaptures</key>
+					<dict>
+						<key>0</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.comment.julia</string>
+						</dict>
+					</dict>
+					<key>end</key>
+					<string>\n</string>
+					<key>name</key>
+					<string>comment.line.number-sign.julia</string>
+					<key>patterns</key>
+					<array>
+						<dict>
+							<key>include</key>
+							<string>#comment_tags</string>
+						</dict>
+					</array>
+				</dict>
+			</array>
+		</dict>
+		<key>comment_block</key>
 		<dict>
 			<key>patterns</key>
 			<array>
@@ -141,20 +304,17 @@
 					</dict>
 					<key>name</key>
 					<string>comment.block.number-sign-equals.julia</string>
-				</dict>
-				<dict>
-					<key>captures</key>
-					<dict>
-						<key>1</key>
+					<key>patterns</key>
+					<array>
 						<dict>
-							<key>name</key>
-							<string>punctuation.definition.comment.julia</string>
+							<key>include</key>
+							<string>#comment_tags</string>
 						</dict>
-					</dict>
-					<key>match</key>
-					<string>(?&lt;!\$)(#)(?!\{).*$\n?</string>
-					<key>name</key>
-					<string>comment.line.number-sign.julia</string>
+						<dict>
+							<key>include</key>
+							<string>#comment_block</string>
+						</dict>
+					</array>
 				</dict>
 			</array>
 		</dict>
@@ -164,7 +324,7 @@
 			<array>
 				<dict>
 					<key>begin</key>
-					<string>([a-zA-Z0-9_]+!?)\w*\(</string>
+					<string>((?:[[:alpha:]_\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{So}←-⇿])(?:[[:word:]_!\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{Mn}-¡]|[^\P{Mc}-¡]|[^\P{Nd}-¡]|[^\P{Pc}-¡]|[^\P{Sk}-¡]|[^\P{Me}-¡]|[^\P{No}-¡]|[′-‷⁗]|[^\P{So}←-⇿])*)({(?:[^{}]|{(?:[^{}]|{[^{}]*})*})*})?\.?(\()</string>
 					<key>beginCaptures</key>
 					<dict>
 						<key>1</key>
@@ -172,11 +332,26 @@
 							<key>name</key>
 							<string>support.function.julia</string>
 						</dict>
+						<key>2</key>
+						<dict>
+							<key>name</key>
+							<string>support.type.julia</string>
+						</dict>
+						<key>3</key>
+						<dict>
+							<key>name</key>
+							<string>meta.bracket.julia</string>
+						</dict>
 					</dict>
 					<key>end</key>
 					<string>\)(('|(\.'))*\.?')?</string>
 					<key>endCaptures</key>
 					<dict>
+						<key>0</key>
+						<dict>
+							<key>name</key>
+							<string>meta.bracket.julia</string>
+						</dict>
 						<key>1</key>
 						<dict>
 							<key>name</key>
@@ -187,7 +362,7 @@
 					<array>
 						<dict>
 							<key>include</key>
-							<string>$self</string>
+							<string>#self_no_for_block</string>
 						</dict>
 					</array>
 				</dict>
@@ -212,7 +387,16 @@
 						</dict>
 					</dict>
 					<key>match</key>
-					<string>([\w.!]+)({[^}]*})?\((?=.*\)\s*=(?!=))</string>
+					<string>((?:[[:alpha:]_\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{So}←-⇿])(?:[[:word:]_!\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{Mn}-¡]|[^\P{Mc}-¡]|[^\P{Nd}-¡]|[^\P{Pc}-¡]|[^\P{Sk}-¡]|[^\P{Me}-¡]|[^\P{No}-¡]|[′-‷⁗]|[^\P{So}←-⇿])*)({(?:[^{}]|{(?:[^{}]|{[^{}]*})*})*})?(?=\([^#]*\)(::[^\s]+)?(\s*\bwhere\b\s+.+?)?\s*?=(?![=&gt;]))</string>
+					<key>comment</key>
+					<string>first group is function name
+Second group is type parameters (e.g. {T&lt;:Number, S})
+Then open parens
+Then a lookahead ensures that we are followed by:
+  - anything (function arguments)
+  - 0 or more spaces
+  - Finally an equal sign
+Negative lookahead ensures we don't have another equal sign (not `==`)</string>
 				</dict>
 				<dict>
 					<key>captures</key>
@@ -225,16 +409,58 @@
 						<key>2</key>
 						<dict>
 							<key>name</key>
-							<string>entity.name.function.julia</string>
+							<string>keyword.operator.dots.julia</string>
 						</dict>
 						<key>3</key>
+						<dict>
+							<key>name</key>
+							<string>entity.name.function.julia</string>
+						</dict>
+						<key>4</key>
 						<dict>
 							<key>name</key>
 							<string>support.type.julia</string>
 						</dict>
 					</dict>
 					<key>match</key>
-					<string>\b(function|macro)\s+([\w.!]+)({[^}]*})?\(</string>
+					<string>\b(function|macro)(?:\s+(?:(?:[[:alpha:]_\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{So}←-⇿])(?:[[:word:]_!\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{Mn}-¡]|[^\P{Mc}-¡]|[^\P{Nd}-¡]|[^\P{Pc}-¡]|[^\P{Sk}-¡]|[^\P{Me}-¡]|[^\P{No}-¡]|[′-‷⁗]|[^\P{So}←-⇿])*(\.))?((?:[[:alpha:]_\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{So}←-⇿])(?:[[:word:]_!\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{Mn}-¡]|[^\P{Mc}-¡]|[^\P{Nd}-¡]|[^\P{Pc}-¡]|[^\P{Sk}-¡]|[^\P{Me}-¡]|[^\P{No}-¡]|[′-‷⁗]|[^\P{So}←-⇿])*)({(?:[^{}]|{(?:[^{}]|{[^{}]*})*})*})?|\s*)(?=\()</string>
+					<key>comment</key>
+					<string>similar regex to previous, but with keyword not 1-line syntax</string>
+				</dict>
+			</array>
+		</dict>
+		<key>for_block</key>
+		<dict>
+			<key>comment</key>
+			<string>for blocks need to be special-cased to support tokenizing 'outer' properly</string>
+			<key>patterns</key>
+			<array>
+				<dict>
+					<key>begin</key>
+					<string>\b(for)\b</string>
+					<key>beginCaptures</key>
+					<dict>
+						<key>0</key>
+						<dict>
+							<key>name</key>
+							<string>keyword.control.julia</string>
+						</dict>
+					</dict>
+					<key>end</key>
+					<string>(?&lt;!,|\s)(\s*\n)</string>
+					<key>patterns</key>
+					<array>
+						<dict>
+							<key>match</key>
+							<string>\bouter\b</string>
+							<key>name</key>
+							<string>keyword.other.julia</string>
+						</dict>
+						<dict>
+							<key>include</key>
+							<string>$self</string>
+						</dict>
+					</array>
 				</dict>
 			</array>
 		</dict>
@@ -244,25 +470,61 @@
 			<array>
 				<dict>
 					<key>match</key>
-					<string>\b(?:function|(mutable\s+)?struct|macro|quote|((primitive|abstract)\s+)?type|immutable|module|baremodule|new|where)\b</string>
+					<string>\b(?&lt;![:_\.])(?:function|mutable\s+struct|struct|macro|quote|abstract\s+type|primitive\s+type|module|baremodule|where)\b</string>
 					<key>name</key>
 					<string>keyword.other.julia</string>
 				</dict>
 				<dict>
 					<key>match</key>
-					<string>\b(?:if|else|elseif|while|for|in|isa|begin|let|end|do|try|catch|finally|return|break|continue)\b</string>
+					<string>\b(?&lt;![:_])(?:if|else|elseif|for|while|begin|let|do|try|catch|finally|return|break|continue)\b</string>
 					<key>name</key>
 					<string>keyword.control.julia</string>
 				</dict>
 				<dict>
 					<key>match</key>
-					<string>\b(?:global|local|const|export|import|importall|using)\b</string>
+					<string>\b(?&lt;![:_])end\b</string>
 					<key>name</key>
-					<string>storage.modifier.variable.julia</string>
+					<string>keyword.control.end.julia</string>
 				</dict>
 				<dict>
 					<key>match</key>
-					<string>@\w+\b</string>
+					<string>\b(?&lt;![:_])(?:global|local|const)\b</string>
+					<key>name</key>
+					<string>keyword.storage.modifier.julia</string>
+				</dict>
+				<dict>
+					<key>match</key>
+					<string>\b(?&lt;![:_])(?:export)\b</string>
+					<key>name</key>
+					<string>keyword.control.export.julia</string>
+				</dict>
+				<dict>
+					<key>match</key>
+					<string>^(?:public)\b</string>
+					<key>name</key>
+					<string>keyword.control.public.julia</string>
+				</dict>
+				<dict>
+					<key>match</key>
+					<string>\b(?&lt;![:_])(?:import)\b</string>
+					<key>name</key>
+					<string>keyword.control.import.julia</string>
+				</dict>
+				<dict>
+					<key>match</key>
+					<string>\b(?&lt;![:_])(?:using)\b</string>
+					<key>name</key>
+					<string>keyword.control.using.julia</string>
+				</dict>
+				<dict>
+					<key>match</key>
+					<string>(?&lt;=\S\s+)\b(as)\b(?=\s+\S)</string>
+					<key>name</key>
+					<string>keyword.control.as.julia</string>
+				</dict>
+				<dict>
+					<key>match</key>
+					<string>@(\.|(?:[[:alpha:]_\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{So}←-⇿])(?:[[:word:]_!\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{Mn}-¡]|[^\P{Mc}-¡]|[^\P{Nd}-¡]|[^\P{Pc}-¡]|[^\P{Sk}-¡]|[^\P{Me}-¡]|[^\P{No}-¡]|[′-‷⁗]|[^\P{So}←-⇿])*|[\p{S}\p{P}&amp;&amp;[^\s@]]+)</string>
 					<key>name</key>
 					<string>support.function.macro.julia</string>
 				</dict>
@@ -274,13 +536,30 @@
 			<array>
 				<dict>
 					<key>match</key>
-					<string>((\b0(x|X)[0-9a-fA-F](_?[0-9a-fA-F])*)|(\b0o[0-7](_?[0-7])*)|(\b0b[0-1](_?[0-1])*)|((\b[0-9](_?[0-9])*\.?(_?[0-9]*))|(\.[0-9](_?[0-9])*))((e|E)(\+|-)?(_?[0-9])*)?(im)?|\bInf(32)?\b|\bNaN(32)?\b)</string>
-					<key>name</key>
-					<string>constant.numeric.julia</string>
+					<string>((?&lt;!(?:[[:word:]_!\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{Mn}-¡]|[^\P{Mc}-¡]|[^\P{Nd}-¡]|[^\P{Pc}-¡]|[^\P{Sk}-¡]|[^\P{Me}-¡]|[^\P{No}-¡]|[′-‷⁗]|[^\P{So}←-⇿]))(?:(?:\b0(?:x|X)[0-9a-fA-F](?:_?[0-9a-fA-F])*)|(?:\b0o[0-7](?:_?[0-7])*)|(?:\b0b[0-1](?:_?[0-1])*)|(?:(?:\b[0-9](?:_?[0-9])*\.?(?!\.)(?:[_0-9]*))|(?:\b\.[0-9](?:_?[0-9])*))(?:[efE][+-]?[0-9](?:_?[0-9])*)?(?:im\b|Inf(?:16|32|64)?\b|NaN(?:16|32|64)?\b|π\b|pi\b|ℯ\b)?|\b[0-9]+|\bInf(?:16|32|64)?\b|\bNaN(?:16|32|64)?\b|\bπ\b|\bpi\b|\bℯ\b))('*)</string>
+					<key>captures</key>
+					<dict>
+						<key>1</key>
+						<dict>
+							<key>name</key>
+							<string>constant.numeric.julia</string>
+						</dict>
+						<key>2</key>
+						<dict>
+							<key>name</key>
+							<string>keyword.operator.conjugate-number.julia</string>
+						</dict>
+					</dict>
 				</dict>
 				<dict>
 					<key>match</key>
-					<string>\btrue\b|\bfalse\b|\bnothing\b</string>
+					<string>\bARGS\b|\bC_NULL\b|\bDEPOT_PATH\b|\bENDIAN_BOM\b|\bENV\b|\bLOAD_PATH\b|\bPROGRAM_FILE\b|\bstdin\b|\bstdout\b|\bstderr\b|\bVERSION\b|\bdevnull\b</string>
+					<key>name</key>
+					<string>constant.global.julia</string>
+				</dict>
+				<dict>
+					<key>match</key>
+					<string>\btrue\b|\bfalse\b|\bnothing\b|\bmissing\b</string>
 					<key>name</key>
 					<string>constant.language.julia</string>
 				</dict>
@@ -292,79 +571,119 @@
 			<array>
 				<dict>
 					<key>match</key>
-					<string>(?:=|:=|\+=|-=|\*=|/=|//=|\.//=|\.\*=|\\=|\.\\=|^=|\.^=|%=|\|=|&amp;=|\$=|&lt;&lt;=|&gt;&gt;=)</string>
-					<key>name</key>
-					<string>keyword.operator.update.julia</string>
-				</dict>
-				<dict>
-					<key>match</key>
-					<string>(?:::(?:(?:Union)?\([^)]*\)|\w+(?:{[^}]*})?))(?:\.\.\.)?</string>
-					<key>name</key>
-					<string>support.type.julia</string>
-				</dict>
-				<dict>
-					<key>match</key>
-					<string>(?:\?|:)</string>
-					<key>name</key>
-					<string>keyword.operator.ternary.julia</string>
-				</dict>
-				<dict>
-					<key>match</key>
-					<string>(?:\|\||&amp;&amp;|!)</string>
-					<key>name</key>
-					<string>keyword.operator.boolean.julia</string>
-				</dict>
-				<dict>
-					<key>match</key>
-					<string>(?:-&gt;|&lt;-|--&gt;)</string>
+					<string>\.?(?:&lt;--&gt;|-&gt;|--&gt;|&lt;--|←|→|↔|↚|↛|↞|↠|↢|↣|↦|↤|↮|⇎|⇍|⇏|⇐|⇒|⇔|⇴|⇶|⇷|⇸|⇹|⇺|⇻|⇼|⇽|⇾|⇿|⟵|⟶|⟷|⟹|⟺|⟻|⟼|⟽|⟾|⟿|⤀|⤁|⤂|⤃|⤄|⤅|⤆|⤇|⤌|⤍|⤎|⤏|⤐|⤑|⤔|⤕|⤖|⤗|⤘|⤝|⤞|⤟|⤠|⥄|⥅|⥆|⥇|⥈|⥊|⥋|⥎|⥐|⥒|⥓|⥖|⥗|⥚|⥛|⥞|⥟|⥢|⥤|⥦|⥧|⥨|⥩|⥪|⥫|⥬|⥭|⥰|⧴|⬱|⬰|⬲|⬳|⬴|⬵|⬶|⬷|⬸|⬹|⬺|⬻|⬼|⬽|⬾|⬿|⭀|⭁|⭂|⭃|⥷|⭄|⥺|⭇|⭈|⭉|⭊|⭋|⭌|￩|￫|⇜|⇝|↜|↝|↩|↪|↫|↬|↼|↽|⇀|⇁|⇄|⇆|⇇|⇉|⇋|⇌|⇚|⇛|⇠|⇢|↷|↶|↺|↻|=&gt;)</string>
 					<key>name</key>
 					<string>keyword.operator.arrow.julia</string>
 				</dict>
 				<dict>
 					<key>match</key>
-					<string>(?:&gt;|&lt;|&gt;=|&lt;=|==|!=|\.&gt;|\.&lt;|\.&gt;=|\.&gt;=|\.==|\.!=|\.=|\.!|&lt;:|:&gt;)</string>
+					<string>(?::=|\+=|-=|\*=|//=|/=|\.//=|\./=|\.\*=|\\=|\.\\=|\^=|\.\^=|%=|\.%=|÷=|\.÷=|\|=|&amp;=|\.&amp;=|⊻=|\.⊻=|\$=|&lt;&lt;=|&gt;&gt;=|&gt;&gt;&gt;=|=(?!=))</string>
 					<key>name</key>
-					<string>keyword.operator.relation.julia</string>
+					<string>keyword.operator.update.julia</string>
 				</dict>
 				<dict>
 					<key>match</key>
-					<string>(?::)</string>
-					<key>name</key>
-					<string>keyword.operator.range.julia</string>
-				</dict>
-				<dict>
-					<key>match</key>
-					<string>(?:&lt;&lt;|&gt;&gt;)</string>
+					<string>(?:&lt;&lt;|&gt;&gt;&gt;|&gt;&gt;|\.&gt;&gt;&gt;|\.&gt;&gt;|\.&lt;&lt;)</string>
 					<key>name</key>
 					<string>keyword.operator.shift.julia</string>
 				</dict>
 				<dict>
 					<key>match</key>
-					<string>(?:\||\&amp;|~)</string>
+					<string>(?:\s*(::|&gt;:|&lt;:)\s*((?:(?:Union)?\([^)]*\)|[[:alpha:]_$∇][[:word:]⁺-ₜ!′\.]*(?:(?:{(?:[^{}]|{(?:[^{}]|{[^{}]*})*})*})|(?:".+?(?&lt;!\\)"))?)))(?:\.\.\.)?((?:\.)?'*)</string>
+					<key>captures</key>
+					<dict>
+						<key>1</key>
+						<dict>
+							<key>name</key>
+							<string>keyword.operator.relation.types.julia</string>
+						</dict>
+						<key>2</key>
+						<dict>
+							<key>name</key>
+							<string>support.type.julia</string>
+						</dict>
+						<key>3</key>
+						<dict>
+							<key>name</key>
+							<string>keyword.operator.transpose.julia</string>
+						</dict>
+					</dict>
+				</dict>
+				<dict>
+					<key>match</key>
+					<string>(\.?((?&lt;!&lt;)&lt;=|(?&lt;!&gt;)&gt;=|&gt;|&lt;|≥|≤|===|==|≡|!=|≠|!==|≢|∈|∉|∋|∌|⊆|⊈|⊂|⊄|⊊|∝|∊|∍|∥|∦|∷|∺|∻|∽|∾|≁|≃|≂|≄|≅|≆|≇|≈|≉|≊|≋|≌|≍|≎|≐|≑|≒|≓|≖|≗|≘|≙|≚|≛|≜|≝|≞|≟|≣|≦|≧|≨|≩|≪|≫|≬|≭|≮|≯|≰|≱|≲|≳|≴|≵|≶|≷|≸|≹|≺|≻|≼|≽|≾|≿|⊀|⊁|⊃|⊅|⊇|⊉|⊋|⊏|⊐|⊑|⊒|⊜|⊩|⊬|⊮|⊰|⊱|⊲|⊳|⊴|⊵|⊶|⊷|⋍|⋐|⋑|⋕|⋖|⋗|⋘|⋙|⋚|⋛|⋜|⋝|⋞|⋟|⋠|⋡|⋢|⋣|⋤|⋥|⋦|⋧|⋨|⋩|⋪|⋫|⋬|⋭|⋲|⋳|⋴|⋵|⋶|⋷|⋸|⋹|⋺|⋻|⋼|⋽|⋾|⋿|⟈|⟉|⟒|⦷|⧀|⧁|⧡|⧣|⧤|⧥|⩦|⩧|⩪|⩫|⩬|⩭|⩮|⩯|⩰|⩱|⩲|⩳|⩵|⩶|⩷|⩸|⩹|⩺|⩻|⩼|⩽|⩾|⩿|⪀|⪁|⪂|⪃|⪄|⪅|⪆|⪇|⪈|⪉|⪊|⪋|⪌|⪍|⪎|⪏|⪐|⪑|⪒|⪓|⪔|⪕|⪖|⪗|⪘|⪙|⪚|⪛|⪜|⪝|⪞|⪟|⪠|⪡|⪢|⪣|⪤|⪥|⪦|⪧|⪨|⪩|⪪|⪫|⪬|⪭|⪮|⪯|⪰|⪱|⪲|⪳|⪴|⪵|⪶|⪷|⪸|⪹|⪺|⪻|⪼|⪽|⪾|⪿|⫀|⫁|⫂|⫃|⫄|⫅|⫆|⫇|⫈|⫉|⫊|⫋|⫌|⫍|⫎|⫏|⫐|⫑|⫒|⫓|⫔|⫕|⫖|⫗|⫘|⫙|⫷|⫸|⫹|⫺|⊢|⊣|⟂|⫪|⫫|&lt;:|&gt;:))</string>
+					<key>name</key>
+					<string>keyword.operator.relation.julia</string>
+				</dict>
+				<dict>
+					<key>match</key>
+					<string>(?&lt;=\s)(?:\?)(?=\s)</string>
+					<key>name</key>
+					<string>keyword.operator.ternary.julia</string>
+				</dict>
+				<dict>
+					<key>match</key>
+					<string>(?&lt;=\s)(?:\:)(?=\s)</string>
+					<key>name</key>
+					<string>keyword.operator.ternary.julia</string>
+				</dict>
+				<dict>
+					<key>match</key>
+					<string>(?:\|\||&amp;&amp;|(?&lt;!(?:[[:word:]_!\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{Mn}-¡]|[^\P{Mc}-¡]|[^\P{Nd}-¡]|[^\P{Pc}-¡]|[^\P{Sk}-¡]|[^\P{Me}-¡]|[^\P{No}-¡]|[′-‷⁗]|[^\P{So}←-⇿]))!)</string>
+					<key>name</key>
+					<string>keyword.operator.boolean.julia</string>
+				</dict>
+				<dict>
+					<key>match</key>
+					<string>(?&lt;=[[:word:]⁺-ₜ!′∇\)\]\}])(?::)</string>
+					<key>name</key>
+					<string>keyword.operator.range.julia</string>
+				</dict>
+				<dict>
+					<key>match</key>
+					<string>(?:\|&gt;)</string>
+					<key>name</key>
+					<string>keyword.operator.applies.julia</string>
+				</dict>
+				<dict>
+					<key>match</key>
+					<string>(?:\||\.\||\&amp;|\.\&amp;|~|¬|\.~|⊻|\.⊻)</string>
 					<key>name</key>
 					<string>keyword.operator.bitwise.julia</string>
 				</dict>
 				<dict>
 					<key>match</key>
-					<string>(?:\+|-|\*|\.\*|/|\./|//|\.//|%|\.%|\\|\.\\|\^|\.\^)</string>
+					<string>\.?(?:\+\+|\-\-|\+|\-|−|¦|\||⊕|⊖|⊞|⊟|∪|∨|⊔|±|∓|∔|∸|≏|⊎|⊻|⊽|⋎|⋓|⟇|⧺|⧻|⨈|⨢|⨣|⨤|⨥|⨦|⨧|⨨|⨩|⨪|⨫|⨬|⨭|⨮|⨹|⨺|⩁|⩂|⩅|⩊|⩌|⩏|⩐|⩒|⩔|⩖|⩗|⩛|⩝|⩡|⩢|⩣|\*|//?|⌿|÷|%|&amp;|·|·|⋅|∘|×|\\|∩|∧|⊗|⊘|⊙|⊚|⊛|⊠|⊡|⊓|∗|∙|∤|⅋|≀|⊼|⋄|⋆|⋇|⋉|⋊|⋋|⋌|⋏|⋒|⟑|⦸|⦼|⦾|⦿|⧶|⧷|⨇|⨰|⨱|⨲|⨳|⨴|⨵|⨶|⨷|⨸|⨻|⨼|⨽|⩀|⩃|⩄|⩋|⩍|⩎|⩑|⩓|⩕|⩘|⩚|⩜|⩞|⩟|⩠|⫛|⊍|▷|⨝|⟕|⟖|⟗|⨟|\^|↑|↓|⇵|⟰|⟱|⤈|⤉|⤊|⤋|⤒|⤓|⥉|⥌|⥍|⥏|⥑|⥔|⥕|⥘|⥙|⥜|⥝|⥠|⥡|⥣|⥥|⥮|⥯|￪|￬|√|∛|∜|⋆|±|∓)</string>
 					<key>name</key>
 					<string>keyword.operator.arithmetic.julia</string>
 				</dict>
 				<dict>
 					<key>match</key>
-					<string>(?:::)</string>
+					<string>(?:∘)</string>
+					<key>name</key>
+					<string>keyword.operator.compose.julia</string>
+				</dict>
+				<dict>
+					<key>match</key>
+					<string>(?:::|(?&lt;=\s)isa(?=\s))</string>
 					<key>name</key>
 					<string>keyword.operator.isa.julia</string>
 				</dict>
 				<dict>
 					<key>match</key>
-					<string>(?:\.(?=[a-zA-Z])|\.\.+)</string>
+					<string>(?:(?&lt;=\s)in(?=\s))</string>
+					<key>name</key>
+					<string>keyword.operator.relation.in.julia</string>
+				</dict>
+				<dict>
+					<key>match</key>
+					<string>(?:\.(?=(?:@|_|\p{L}))|\.\.+|…|⁝|⋮|⋱|⋰|⋯)</string>
 					<key>name</key>
 					<string>keyword.operator.dots.julia</string>
 				</dict>
 				<dict>
 					<key>match</key>
-					<string>(?:\$(?=.+))</string>
+					<string>(?:\$)(?=.+)</string>
 					<key>name</key>
 					<string>keyword.operator.interpolation.julia</string>
 				</dict>
@@ -378,7 +697,7 @@
 						</dict>
 					</dict>
 					<key>match</key>
-					<string>(\w+)(('|(\.'))*\.?')</string>
+					<string>((?:[[:alpha:]_\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{So}←-⇿])(?:[[:word:]_!\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{Mn}-¡]|[^\P{Mc}-¡]|[^\P{Nd}-¡]|[^\P{Pc}-¡]|[^\P{Sk}-¡]|[^\P{Me}-¡]|[^\P{No}-¡]|[′-‷⁗]|[^\P{So}←-⇿])*)(('|(\.'))*\.?')</string>
 				</dict>
 				<dict>
 					<key>captures</key>
@@ -386,7 +705,7 @@
 						<key>1</key>
 						<dict>
 							<key>name</key>
-							<string>keyword.bracket.end.julia</string>
+							<string>bracket.end.julia</string>
 						</dict>
 						<key>2</key>
 						<dict>
@@ -403,7 +722,7 @@
 						<key>1</key>
 						<dict>
 							<key>name</key>
-							<string>keyword.bracket.end.julia</string>
+							<string>bracket.end.julia</string>
 						</dict>
 						<key>2</key>
 						<dict>
@@ -422,6 +741,406 @@
 			<array>
 				<dict>
 					<key>begin</key>
+					<string>(?:(@doc)\s((?:doc)?""")|(doc"""))</string>
+					<key>beginCaptures</key>
+					<dict>
+						<key>1</key>
+						<dict>
+							<key>name</key>
+							<string>support.function.macro.julia</string>
+						</dict>
+						<key>2</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.string.begin.julia</string>
+						</dict>
+					</dict>
+					<key>end</key>
+					<string>(""") ?(-&gt;)?</string>
+					<key>endCaptures</key>
+					<dict>
+						<key>1</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.string.end.julia</string>
+						</dict>
+						<key>2</key>
+						<dict>
+							<key>name</key>
+							<string>keyword.operator.arrow.julia</string>
+						</dict>
+					</dict>
+					<key>name</key>
+					<string>string.docstring.julia</string>
+					<key>patterns</key>
+					<array>
+						<dict>
+							<key>include</key>
+							<string>#string_escaped_char</string>
+						</dict>
+						<dict>
+							<key>include</key>
+							<string>#string_dollar_sign_interpolate</string>
+						</dict>
+					</array>
+				</dict>
+				<dict>
+					<key>begin</key>
+					<string>(i?cxx)(""")</string>
+					<key>beginCaptures</key>
+					<dict>
+						<key>1</key>
+						<dict>
+							<key>name</key>
+							<string>support.function.macro.julia</string>
+						</dict>
+						<key>2</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.string.begin.julia</string>
+						</dict>
+					</dict>
+					<key>end</key>
+					<string>"""</string>
+					<key>endCaptures</key>
+					<dict>
+						<key>0</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.string.end.julia</string>
+						</dict>
+					</dict>
+					<key>name</key>
+					<string>embed.cxx.julia</string>
+					<key>contentName</key>
+					<string>meta.embedded.inline.cpp</string>
+					<key>patterns</key>
+					<array>
+						<dict>
+							<key>include</key>
+							<string>source.cpp#root_context</string>
+						</dict>
+						<dict>
+							<key>include</key>
+							<string>#string_dollar_sign_interpolate</string>
+						</dict>
+					</array>
+				</dict>
+				<dict>
+					<key>begin</key>
+					<string>(py)(""")</string>
+					<key>beginCaptures</key>
+					<dict>
+						<key>1</key>
+						<dict>
+							<key>name</key>
+							<string>support.function.macro.julia</string>
+						</dict>
+						<key>2</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.string.begin.julia</string>
+						</dict>
+					</dict>
+					<key>end</key>
+					<string>([\s\w]*)(""")</string>
+					<key>endCaptures</key>
+					<dict>
+						<key>2</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.string.end.julia</string>
+						</dict>
+					</dict>
+					<key>name</key>
+					<string>embed.python.julia</string>
+					<key>contentName</key>
+					<string>meta.embedded.inline.python</string>
+					<key>patterns</key>
+					<array>
+						<dict>
+							<key>include</key>
+							<string>source.python</string>
+						</dict>
+						<dict>
+							<key>include</key>
+							<string>#string_dollar_sign_interpolate</string>
+						</dict>
+					</array>
+				</dict>
+				<dict>
+					<key>begin</key>
+					<string>(js)(""")</string>
+					<key>beginCaptures</key>
+					<dict>
+						<key>1</key>
+						<dict>
+							<key>name</key>
+							<string>support.function.macro.julia</string>
+						</dict>
+						<key>2</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.string.begin.julia</string>
+						</dict>
+					</dict>
+					<key>end</key>
+					<string>"""</string>
+					<key>endCaptures</key>
+					<dict>
+						<key>0</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.string.end.julia</string>
+						</dict>
+					</dict>
+					<key>name</key>
+					<string>embed.js.julia</string>
+					<key>contentName</key>
+					<string>meta.embedded.inline.javascript</string>
+					<key>patterns</key>
+					<array>
+						<dict>
+							<key>include</key>
+							<string>source.js</string>
+						</dict>
+						<dict>
+							<key>include</key>
+							<string>#string_dollar_sign_interpolate</string>
+						</dict>
+					</array>
+				</dict>
+				<dict>
+					<key>begin</key>
+					<string>(R)(""")</string>
+					<key>beginCaptures</key>
+					<dict>
+						<key>1</key>
+						<dict>
+							<key>name</key>
+							<string>support.function.macro.julia</string>
+						</dict>
+						<key>2</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.string.begin.julia</string>
+						</dict>
+					</dict>
+					<key>end</key>
+					<string>"""</string>
+					<key>endCaptures</key>
+					<dict>
+						<key>0</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.string.end.julia</string>
+						</dict>
+					</dict>
+					<key>name</key>
+					<string>embed.R.julia</string>
+					<key>contentName</key>
+					<string>meta.embedded.inline.r</string>
+					<key>patterns</key>
+					<array>
+						<dict>
+							<key>include</key>
+							<string>source.r</string>
+						</dict>
+						<dict>
+							<key>include</key>
+							<string>#string_dollar_sign_interpolate</string>
+						</dict>
+					</array>
+				</dict>
+				<dict>
+					<key>begin</key>
+					<string>(raw)(""")</string>
+					<key>beginCaptures</key>
+					<dict>
+						<key>1</key>
+						<dict>
+							<key>name</key>
+							<string>support.function.macro.julia</string>
+						</dict>
+						<key>2</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.string.begin.julia</string>
+						</dict>
+					</dict>
+					<key>end</key>
+					<string>"""</string>
+					<key>name</key>
+					<string>string.quoted.other.julia</string>
+					<key>endCaptures</key>
+					<dict>
+						<key>0</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.string.end.julia</string>
+						</dict>
+					</dict>
+					<key>patterns</key>
+					<array>
+						<dict>
+							<key>include</key>
+							<string>#string_escaped_char</string>
+						</dict>
+					</array>
+				</dict>
+				<dict>
+					<key>begin</key>
+					<string>(raw)(")</string>
+					<key>beginCaptures</key>
+					<dict>
+						<key>1</key>
+						<dict>
+							<key>name</key>
+							<string>support.function.macro.julia</string>
+						</dict>
+						<key>2</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.string.begin.julia</string>
+						</dict>
+					</dict>
+					<key>end</key>
+					<string>"</string>
+					<key>name</key>
+					<string>string.quoted.other.julia</string>
+					<key>endCaptures</key>
+					<dict>
+						<key>0</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.string.end.julia</string>
+						</dict>
+					</dict>
+					<key>patterns</key>
+					<array>
+						<dict>
+							<key>include</key>
+							<string>#string_escaped_char</string>
+						</dict>
+					</array>
+				</dict>
+				<dict>
+					<key>begin</key>
+					<string>(sql)(""")</string>
+					<key>beginCaptures</key>
+					<dict>
+						<key>1</key>
+						<dict>
+							<key>name</key>
+							<string>support.function.macro.julia</string>
+						</dict>
+						<key>2</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.string.begin.julia</string>
+						</dict>
+					</dict>
+					<key>end</key>
+					<string>"""</string>
+					<key>endCaptures</key>
+					<dict>
+						<key>0</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.string.end.julia</string>
+						</dict>
+					</dict>
+					<key>name</key>
+					<string>embed.sql.julia</string>
+					<key>contentName</key>
+					<string>meta.embedded.inline.sql</string>
+					<key>patterns</key>
+					<array>
+						<dict>
+							<key>include</key>
+							<string>source.sql</string>
+						</dict>
+						<dict>
+							<key>include</key>
+							<string>#string_dollar_sign_interpolate</string>
+						</dict>
+					</array>
+				</dict>
+				<dict>
+					<key>begin</key>
+					<string>var"""</string>
+					<key>end</key>
+					<string>"""</string>
+					<key>name</key>
+					<string>constant.other.symbol.julia</string>
+					<key>patterns</key>
+					<array>
+						<dict>
+							<key>include</key>
+							<string>#string_escaped_char</string>
+						</dict>
+					</array>
+				</dict>
+				<dict>
+					<key>begin</key>
+					<string>var"</string>
+					<key>end</key>
+					<string>"</string>
+					<key>name</key>
+					<string>constant.other.symbol.julia</string>
+					<key>patterns</key>
+					<array>
+						<dict>
+							<key>include</key>
+							<string>#string_escaped_char</string>
+						</dict>
+					</array>
+				</dict>
+				<dict>
+					<key>begin</key>
+					<string>^\s?(doc)?(""")\s?$</string>
+					<key>beginCaptures</key>
+					<dict>
+						<key>1</key>
+						<dict>
+							<key>name</key>
+							<string>support.function.macro.julia</string>
+						</dict>
+						<key>2</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.string.begin.julia</string>
+						</dict>
+					</dict>
+					<key>end</key>
+					<string>(""")</string>
+					<key>endCaptures</key>
+					<dict>
+						<key>1</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.string.end.julia</string>
+						</dict>
+					</dict>
+					<key>name</key>
+					<string>string.docstring.julia</string>
+					<key>comment</key>
+					<string>This only matches docstrings that start and end with triple quotes on
+their own line in the void</string>
+					<key>patterns</key>
+					<array>
+						<dict>
+							<key>include</key>
+							<string>#string_escaped_char</string>
+						</dict>
+						<dict>
+							<key>include</key>
+							<string>#string_dollar_sign_interpolate</string>
+						</dict>
+					</array>
+				</dict>
+				<dict>
+					<key>begin</key>
 					<string>'</string>
 					<key>beginCaptures</key>
 					<dict>
@@ -432,7 +1151,7 @@
 						</dict>
 					</dict>
 					<key>end</key>
-					<string>'</string>
+					<string>'(?!')</string>
 					<key>endCaptures</key>
 					<dict>
 						<key>0</key>
@@ -453,7 +1172,46 @@
 				</dict>
 				<dict>
 					<key>begin</key>
-					<string>"</string>
+					<string>"""</string>
+					<key>beginCaptures</key>
+					<dict>
+						<key>0</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.string.multiline.begin.julia</string>
+						</dict>
+					</dict>
+					<key>end</key>
+					<string>"""</string>
+					<key>endCaptures</key>
+					<dict>
+						<key>0</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.string.multiline.end.julia</string>
+						</dict>
+					</dict>
+					<key>name</key>
+					<string>string.quoted.triple.double.julia</string>
+					<key>comment</key>
+					<string>multi-line string with triple double quotes</string>
+					<key>patterns</key>
+					<array>
+						<dict>
+							<key>include</key>
+							<string>#string_escaped_char</string>
+						</dict>
+						<dict>
+							<key>include</key>
+							<string>#string_dollar_sign_interpolate</string>
+						</dict>
+					</array>
+				</dict>
+				<dict>
+					<key>name</key>
+					<string>string.quoted.double.julia</string>
+					<key>begin</key>
+					<string>"(?!"")</string>
 					<key>beginCaptures</key>
 					<dict>
 						<key>0</key>
@@ -472,8 +1230,50 @@
 							<string>punctuation.definition.string.end.julia</string>
 						</dict>
 					</dict>
+					<key>comment</key>
+					<string>String with single pair of double quotes. Regex matches isolated double quote</string>
+					<key>patterns</key>
+					<array>
+						<dict>
+							<key>include</key>
+							<string>#string_escaped_char</string>
+						</dict>
+						<dict>
+							<key>include</key>
+							<string>#string_dollar_sign_interpolate</string>
+						</dict>
+					</array>
+				</dict>
+				<dict>
+					<key>begin</key>
+					<string>r"""</string>
+					<key>beginCaptures</key>
+					<dict>
+						<key>0</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.string.regexp.begin.julia</string>
+						</dict>
+					</dict>
+					<key>end</key>
+					<string>(""")([imsx]{0,4})?</string>
+					<key>endCaptures</key>
+					<dict>
+						<key>1</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.string.regexp.end.julia</string>
+						</dict>
+						<key>2</key>
+						<dict>
+							<key>comment</key>
+							<string>I took this scope name from python regex grammar</string>
+							<key>name</key>
+							<string>keyword.other.option-toggle.regexp.julia</string>
+						</dict>
+					</dict>
 					<key>name</key>
-					<string>string.quoted.double.julia</string>
+					<string>string.regexp.julia</string>
 					<key>patterns</key>
 					<array>
 						<dict>
@@ -484,7 +1284,45 @@
 				</dict>
 				<dict>
 					<key>begin</key>
-					<string>\b\w+"</string>
+					<string>r"</string>
+					<key>beginCaptures</key>
+					<dict>
+						<key>0</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.string.regexp.begin.julia</string>
+						</dict>
+					</dict>
+					<key>end</key>
+					<string>(")([imsx]{0,4})?</string>
+					<key>endCaptures</key>
+					<dict>
+						<key>1</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.string.regexp.end.julia</string>
+						</dict>
+						<key>2</key>
+						<dict>
+							<key>comment</key>
+							<string>I took this scope name from python regex grammar</string>
+							<key>name</key>
+							<string>keyword.other.option-toggle.regexp.julia</string>
+						</dict>
+					</dict>
+					<key>name</key>
+					<string>string.regexp.julia</string>
+					<key>patterns</key>
+					<array>
+						<dict>
+							<key>include</key>
+							<string>#string_escaped_char</string>
+						</dict>
+					</array>
+				</dict>
+				<dict>
+					<key>begin</key>
+					<string>(?&lt;!")((?:[[:alpha:]_\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{So}←-⇿])(?:[[:word:]_!\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{Mn}-¡]|[^\P{Mc}-¡]|[^\P{Nd}-¡]|[^\P{Pc}-¡]|[^\P{Sk}-¡]|[^\P{Me}-¡]|[^\P{No}-¡]|[′-‷⁗]|[^\P{So}←-⇿])*)"""</string>
 					<key>beginCaptures</key>
 					<dict>
 						<key>0</key>
@@ -492,15 +1330,25 @@
 							<key>name</key>
 							<string>punctuation.definition.string.begin.julia</string>
 						</dict>
+						<key>1</key>
+						<dict>
+							<key>name</key>
+							<string>support.function.macro.julia</string>
+						</dict>
 					</dict>
 					<key>end</key>
-					<string>"\w*</string>
+					<string>(""")((?:[[:alpha:]_\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{So}←-⇿])(?:[[:word:]_!\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{Mn}-¡]|[^\P{Mc}-¡]|[^\P{Nd}-¡]|[^\P{Pc}-¡]|[^\P{Sk}-¡]|[^\P{Me}-¡]|[^\P{No}-¡]|[′-‷⁗]|[^\P{So}←-⇿])*)?</string>
 					<key>endCaptures</key>
 					<dict>
-						<key>0</key>
+						<key>1</key>
 						<dict>
 							<key>name</key>
 							<string>punctuation.definition.string.end.julia</string>
+						</dict>
+						<key>2</key>
+						<dict>
+							<key>name</key>
+							<string>support.function.macro.julia</string>
 						</dict>
 					</dict>
 					<key>name</key>
@@ -509,13 +1357,13 @@
 					<array>
 						<dict>
 							<key>include</key>
-							<string>#string_custom_escaped_char</string>
+							<string>#string_escaped_char</string>
 						</dict>
 					</array>
 				</dict>
 				<dict>
 					<key>begin</key>
-					<string>`</string>
+					<string>(?&lt;!")((?:[[:alpha:]_\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{So}←-⇿])(?:[[:word:]_!\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{Mn}-¡]|[^\P{Mc}-¡]|[^\P{Nd}-¡]|[^\P{Pc}-¡]|[^\P{Sk}-¡]|[^\P{Me}-¡]|[^\P{No}-¡]|[′-‷⁗]|[^\P{So}←-⇿])*)"</string>
 					<key>beginCaptures</key>
 					<dict>
 						<key>0</key>
@@ -523,19 +1371,29 @@
 							<key>name</key>
 							<string>punctuation.definition.string.begin.julia</string>
 						</dict>
+						<key>1</key>
+						<dict>
+							<key>name</key>
+							<string>support.function.macro.julia</string>
+						</dict>
 					</dict>
 					<key>end</key>
-					<string>`</string>
+					<string>(?&lt;![^\\]\\)(")((?:[[:alpha:]_\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{So}←-⇿])(?:[[:word:]_!\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{Mn}-¡]|[^\P{Mc}-¡]|[^\P{Nd}-¡]|[^\P{Pc}-¡]|[^\P{Sk}-¡]|[^\P{Me}-¡]|[^\P{No}-¡]|[′-‷⁗]|[^\P{So}←-⇿])*)?</string>
 					<key>endCaptures</key>
 					<dict>
-						<key>0</key>
+						<key>1</key>
 						<dict>
 							<key>name</key>
 							<string>punctuation.definition.string.end.julia</string>
 						</dict>
+						<key>2</key>
+						<dict>
+							<key>name</key>
+							<string>support.function.macro.julia</string>
+						</dict>
 					</dict>
 					<key>name</key>
-					<string>string.interpolated.julia</string>
+					<string>string.quoted.other.julia</string>
 					<key>patterns</key>
 					<array>
 						<dict>
@@ -544,17 +1402,95 @@
 						</dict>
 					</array>
 				</dict>
-			</array>
-		</dict>
-		<key>string_custom_escaped_char</key>
-		<dict>
-			<key>patterns</key>
-			<array>
 				<dict>
-					<key>match</key>
-					<string>\\"</string>
+					<key>begin</key>
+					<string>(?&lt;!`)((?:[[:alpha:]_\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{So}←-⇿])(?:[[:word:]_!\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{Mn}-¡]|[^\P{Mc}-¡]|[^\P{Nd}-¡]|[^\P{Pc}-¡]|[^\P{Sk}-¡]|[^\P{Me}-¡]|[^\P{No}-¡]|[′-‷⁗]|[^\P{So}←-⇿])*)?```</string>
+					<key>beginCaptures</key>
+					<dict>
+						<key>0</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.string.begin.julia</string>
+						</dict>
+						<key>1</key>
+						<dict>
+							<key>name</key>
+							<string>support.function.macro.julia</string>
+						</dict>
+					</dict>
+					<key>end</key>
+					<string>(```)((?:[[:alpha:]_\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{So}←-⇿])(?:[[:word:]_!\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{Mn}-¡]|[^\P{Mc}-¡]|[^\P{Nd}-¡]|[^\P{Pc}-¡]|[^\P{Sk}-¡]|[^\P{Me}-¡]|[^\P{No}-¡]|[′-‷⁗]|[^\P{So}←-⇿])*)?</string>
+					<key>endCaptures</key>
+					<dict>
+						<key>1</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.string.end.julia</string>
+						</dict>
+						<key>2</key>
+						<dict>
+							<key>name</key>
+							<string>support.function.macro.julia</string>
+						</dict>
+					</dict>
 					<key>name</key>
-					<string>constant.character.escape.julia</string>
+					<string>string.interpolated.backtick.julia</string>
+					<key>patterns</key>
+					<array>
+						<dict>
+							<key>include</key>
+							<string>#string_escaped_char</string>
+						</dict>
+						<dict>
+							<key>include</key>
+							<string>#string_dollar_sign_interpolate</string>
+						</dict>
+					</array>
+				</dict>
+				<dict>
+					<key>begin</key>
+					<string>(?&lt;!`)((?:[[:alpha:]_\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{So}←-⇿])(?:[[:word:]_!\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{Mn}-¡]|[^\P{Mc}-¡]|[^\P{Nd}-¡]|[^\P{Pc}-¡]|[^\P{Sk}-¡]|[^\P{Me}-¡]|[^\P{No}-¡]|[′-‷⁗]|[^\P{So}←-⇿])*)?`</string>
+					<key>beginCaptures</key>
+					<dict>
+						<key>0</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.string.begin.julia</string>
+						</dict>
+						<key>1</key>
+						<dict>
+							<key>name</key>
+							<string>support.function.macro.julia</string>
+						</dict>
+					</dict>
+					<key>end</key>
+					<string>(?&lt;![^\\]\\)(`)((?:[[:alpha:]_\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{So}←-⇿])(?:[[:word:]_!\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{Mn}-¡]|[^\P{Mc}-¡]|[^\P{Nd}-¡]|[^\P{Pc}-¡]|[^\P{Sk}-¡]|[^\P{Me}-¡]|[^\P{No}-¡]|[′-‷⁗]|[^\P{So}←-⇿])*)?</string>
+					<key>endCaptures</key>
+					<dict>
+						<key>1</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.string.end.julia</string>
+						</dict>
+						<key>2</key>
+						<dict>
+							<key>name</key>
+							<string>support.function.macro.julia</string>
+						</dict>
+					</dict>
+					<key>name</key>
+					<string>string.interpolated.backtick.julia</string>
+					<key>patterns</key>
+					<array>
+						<dict>
+							<key>include</key>
+							<string>#string_escaped_char</string>
+						</dict>
+						<dict>
+							<key>include</key>
+							<string>#string_dollar_sign_interpolate</string>
+						</dict>
+					</array>
 				</dict>
 			</array>
 		</dict>
@@ -564,9 +1500,56 @@
 			<array>
 				<dict>
 					<key>match</key>
-					<string>\\(\\|[0-3]\d{0,2}|[4-7]\d?|x[a-fA-F0-9]{0,2}|u[a-fA-F0-9]{0,4}|U[a-fA-F0-9]{0,8}|.)</string>
+					<string>\\(\\|[0-3]\d{,2}|[4-7]\d?|x[a-fA-F0-9]{,2}|u[a-fA-F0-9]{,4}|U[a-fA-F0-9]{,8}|.)</string>
 					<key>name</key>
 					<string>constant.character.escape.julia</string>
+				</dict>
+			</array>
+		</dict>
+		<key>string_dollar_sign_interpolate</key>
+		<dict>
+			<key>patterns</key>
+			<array>
+				<dict>
+					<key>match</key>
+					<string>\$(?:[[:alpha:]_\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{So}←-⇿]|[^\p{^Sc}$])(?:[[:word:]_!\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{Mn}-¡]|[^\P{Mc}-¡]|[^\P{Nd}-¡]|[^\P{Pc}-¡]|[^\P{Sk}-¡]|[^\P{Me}-¡]|[^\P{No}-¡]|[′-‷⁗]|[^\P{So}←-⇿]|[^\p{^Sc}$])*</string>
+					<key>name</key>
+					<string>variable.interpolation.julia</string>
+				</dict>
+				<dict>
+					<key>begin</key>
+					<string>\$(\()</string>
+					<key>beginCaptures</key>
+					<dict>
+						<key>1</key>
+						<dict>
+							<key>name</key>
+							<string>meta.bracket.julia</string>
+						</dict>
+					</dict>
+					<key>end</key>
+					<string>\)</string>
+					<key>endCaptures</key>
+					<dict>
+						<key>0</key>
+						<dict>
+							<key>name</key>
+							<string>meta.bracket.julia</string>
+						</dict>
+					</dict>
+					<key>name</key>
+					<string>variable.interpolation.julia</string>
+					<key>comment</key>
+					<string>`punctuation.section.embedded`, `constant.escape`,
+&amp; `meta.embedded.line` were considered but appear to have even spottier
+support among popular syntaxes.</string>
+					<key>patterns</key>
+					<array>
+						<dict>
+							<key>include</key>
+							<string>#self_no_for_block</string>
+						</dict>
+					</array>
 				</dict>
 			</array>
 		</dict>
@@ -576,9 +1559,11 @@
 			<array>
 				<dict>
 					<key>match</key>
-					<string>(?&lt;![a-zA-Z0-9:&lt;]:):[a-zA-Z_][a-zA-Z0-9_]*\b</string>
+					<string>(?&lt;![[:word:]⁺-ₜ!′∇\)\]\}]):(?:(?:[[:alpha:]_\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{So}←-⇿])(?:[[:word:]_!\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{Mn}-¡]|[^\P{Mc}-¡]|[^\P{Nd}-¡]|[^\P{Pc}-¡]|[^\P{Sk}-¡]|[^\P{Me}-¡]|[^\P{No}-¡]|[′-‷⁗]|[^\P{So}←-⇿])*)(?!(?:[[:word:]_!\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{Mn}-¡]|[^\P{Mc}-¡]|[^\P{Nd}-¡]|[^\P{Pc}-¡]|[^\P{Sk}-¡]|[^\P{Me}-¡]|[^\P{No}-¡]|[′-‷⁗]|[^\P{So}←-⇿]))(?!["`])</string>
 					<key>name</key>
 					<string>constant.other.symbol.julia</string>
+					<key>comment</key>
+					<string>This is string.quoted.symbol.julia in tpoisot's package</string>
 				</dict>
 			</array>
 		</dict>
@@ -592,35 +1577,106 @@
 						<key>1</key>
 						<dict>
 							<key>name</key>
-							<string>keyword.control.type.julia</string>
+							<string>entity.name.type.julia</string>
 						</dict>
 						<key>2</key>
 						<dict>
 							<key>name</key>
-							<string>entity.name.type.julia</string>
-						</dict>
-						<key>3</key>
-						<dict>
-							<key>name</key>
 							<string>entity.other.inherited-class.julia</string>
 						</dict>
-						<key>4</key>
+						<key>3</key>
 						<dict>
 							<key>name</key>
 							<string>punctuation.separator.inheritance.julia</string>
 						</dict>
 					</dict>
 					<key>match</key>
-					<string>(((primitive|abstract)\s+)?type|(mutable\s+)?struct|immutable)\s+(\w+)(\s*(&lt;:)\s*\w+(?:{.*})?)?</string>
+					<string>(?&gt;!:_)(?:struct|mutable\s+struct|abstract\s+type|primitive\s+type)\s+((?:[[:alpha:]_\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{So}←-⇿])(?:[[:word:]_!\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{Mn}-¡]|[^\P{Mc}-¡]|[^\P{Nd}-¡]|[^\P{Pc}-¡]|[^\P{Sk}-¡]|[^\P{Me}-¡]|[^\P{No}-¡]|[′-‷⁗]|[^\P{So}←-⇿])*)(\s*(&lt;:)\s*(?:[[:alpha:]_\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{So}←-⇿])(?:[[:word:]_!\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Sc}⅀-⅄∿⊾⊿⊤⊥∂∅-∇∎∏∐∑∞∟∫-∳⋀-⋃◸-◿♯⟘⟙⟀⟁⦰-⦴⨀-⨆⨉-⨖⨛⨜𝛁𝛛𝛻𝜕𝜵𝝏𝝯𝞉𝞩𝟃ⁱ-⁾₁-₎∠-∢⦛-⦯℘℮゛-゜𝟎-𝟡]|[^\P{Mn}-¡]|[^\P{Mc}-¡]|[^\P{Nd}-¡]|[^\P{Pc}-¡]|[^\P{Sk}-¡]|[^\P{Me}-¡]|[^\P{No}-¡]|[′-‷⁗]|[^\P{So}←-⇿])*(?:{.*})?)?</string>
 					<key>name</key>
 					<string>meta.type.julia</string>
 				</dict>
 			</array>
 		</dict>
+		<key>self_no_for_block</key>
+		<dict>
+			<key>comment</key>
+			<string>Same as $self, but does not contain #for_block. 'outer' is not valid in some contexts (e.g. generators, comprehensions, indexing), so use this when matching those in begin/end patterns. Keep this up-to-date with $self!</string>
+			<key>patterns</key>
+			<array>
+				<dict>
+					<key>include</key>
+					<string>#operator</string>
+				</dict>
+				<dict>
+					<key>include</key>
+					<string>#array</string>
+				</dict>
+				<dict>
+					<key>include</key>
+					<string>#string</string>
+				</dict>
+				<dict>
+					<key>include</key>
+					<string>#parentheses</string>
+				</dict>
+				<dict>
+					<key>include</key>
+					<string>#bracket</string>
+				</dict>
+				<dict>
+					<key>include</key>
+					<string>#function_decl</string>
+				</dict>
+				<dict>
+					<key>include</key>
+					<string>#function_call</string>
+				</dict>
+				<dict>
+					<key>include</key>
+					<string>#keyword</string>
+				</dict>
+				<dict>
+					<key>include</key>
+					<string>#number</string>
+				</dict>
+				<dict>
+					<key>include</key>
+					<string>#comment</string>
+				</dict>
+				<dict>
+					<key>include</key>
+					<string>#type_decl</string>
+				</dict>
+				<dict>
+					<key>include</key>
+					<string>#symbol</string>
+				</dict>
+				<dict>
+					<key>include</key>
+					<string>#punctuation</string>
+				</dict>
+			</array>
+		</dict>
+		<key>punctuation</key>
+		<dict>
+			<key>patterns</key>
+			<array>
+				<dict>
+					<key>match</key>
+					<string>,</string>
+					<key>name</key>
+					<string>punctuation.separator.comma.julia</string>
+				</dict>
+				<dict>
+					<key>match</key>
+					<string>;</string>
+					<key>name</key>
+					<string>punctuation.separator.semicolon.julia</string>
+				</dict>
+			</array>
+		</dict>
 	</dict>
-	<key>scopeName</key>
-	<string>source.julia</string>
 	<key>uuid</key>
-	<string>F5D95417-DF9F-48AD-92DF-21CE62F7C31B</string>
+	<string>91418963-388F-35A8-101F-C8F6F5923609</string>
 </dict>
 </plist>
