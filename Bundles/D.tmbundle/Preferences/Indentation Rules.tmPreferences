@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>name</key>
+	<string>Indentation Rules</string>
+	<key>scope</key>
+	<string>source.d</string>
+	<key>settings</key>
+	<dict>
+		<key>decreaseIndentPattern</key>
+		<string>(?x)
+			^ (.*\*/)? \s* \} ([^}{"']* \{)?[;\s]* (//.*|/\*.*\*/\s*)? $ |
+			^ \s* (public|private|protected): \s* $
+		</string>
+		<key>increaseIndentPattern</key>
+		<string>(?x)
+			^ .* \{ [^}"']* $ |
+			^ \s* (public|private|protected): \s* $ |
+			^ \s* \{ \} $
+		</string>
+		<key>indentNextLinePattern</key>
+		<string>(?x)
+			^ (?!(.*[};:])? \s* (//|/\*.*\*/\s*$))
+			.* [^\s;:{}] \s* $ 					# indent next if this one isn’t terminated with ;, :, {, or }
+		</string>
+	</dict>
+	<key>uuid</key>
+	<string>B48E6A36-3B18-4E76-BE32-6A623AF53D67</string>
+</dict>
+</plist>

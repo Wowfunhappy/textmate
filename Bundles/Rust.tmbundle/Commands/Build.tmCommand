@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>beforeRunningCommand</key>
+	<string>saveActiveFile</string>
+	<key>command</key>
+	<string>#!/bin/bash
+
+cd "${TM_PROJECT_DIRECTORY:-$TM_DIRECTORY}"
+"$TM_RUST" "$TM_FILEPATH"
+</string>
+	<key>input</key>
+	<string>document</string>
+	<key>inputFormat</key>
+	<string>text</string>
+	<key>keyEquivalent</key>
+	<string>@R</string>
+	<key>name</key>
+	<string>Build</string>
+	<key>outputCaret</key>
+	<string>afterOutput</string>
+	<key>outputFormat</key>
+	<string>html</string>
+	<key>outputLocation</key>
+	<string>newWindow</string>
+	<key>requiredCommands</key>
+	<array>
+		<dict>
+			<key>command</key>
+			<string>rustc</string>
+			<key>locations</key>
+			<array>
+				<string>/usr/local/bin/rustc</string>
+				<string>/opt/local/bin/rustc</string>
+			</array>
+			<key>variable</key>
+			<string>TM_RUST</string>
+		</dict>
+	</array>
+	<key>scope</key>
+	<string>source.rust</string>
+	<key>uuid</key>
+	<string>A7DF7817-C437-464D-9A12-BA23CB4AE9B9</string>
+	<key>version</key>
+	<integer>2</integer>
+</dict>
+</plist>

@@ -11,58 +11,6 @@
 #import <text/decode.h>
 #import <bundles/bundles.h>
 
-static NSMutableSet* BundlesBeingInstalled = [NSMutableSet set];
-
-@interface Bundle (BundlesInstallPreferences)
-@property (nonatomic) NSControlStateValue installedCellState;
-@end
-
-@implementation Bundle (BundlesInstallPreferences)
-+ (NSSet*)keyPathsForValuesAffectingInstalledCellState
-{
-	return [NSSet setWithObjects:@"installed", nil];
-}
-
-- (NSControlStateValue)installedCellState
-{
-	auto res = self.isInstalled ? NSControlStateValueOn : NSControlStateValueOff;
-	return [BundlesBeingInstalled containsObject:self] ? NSControlStateValueMixed : res;
-}
-
-- (void)setInstalledCellState:(NSControlStateValue)newValue
-{
-	BundlesManager* manager = [BundlesManager sharedInstance];
-	if(newValue == NSControlStateValueOff)
-	{
-		[manager uninstallBundle:self];
-		manager.activityText = [NSString stringWithFormat:@"Uninstalled ‘%@’.", self.name];
-	}
-	else if(![BundlesBeingInstalled containsObject:self])
-	{
-		[BundlesBeingInstalled addObject:self];
-
-		manager.isBusy = YES;
-		manager.activityText = [NSString stringWithFormat:@"Installing ‘%@’…", self.name];
-
-		[manager installBundles:@[ self ] completionHandler:^(NSArray<Bundle*>* bundles){
-			[self willChangeValueForKey:@"installedCellState"];
-			[BundlesBeingInstalled removeObject:self];
-			[self didChangeValueForKey:@"installedCellState"];
-
-			if(!self.installed)
-				manager.activityText = [NSString stringWithFormat:@"Error installing ‘%@’.", self.name];
-			else if(bundles.count == 1)
-				manager.activityText = [NSString stringWithFormat:@"Installed ‘%@’.", self.name];
-			else if(bundles.count == 2)
-				manager.activityText = [NSString stringWithFormat:@"Installed ‘%@’ and one dependency.", self.name];
-			else
-				manager.activityText = [NSString stringWithFormat:@"Installed ‘%@’ and %ld dependencies.", self.name, bundles.count-1];
-			manager.isBusy = NO;
-		}];
-	}
-}
-@end
-
 static NSString* const kAlwaysShowBundlesKey = @"alwaysShowBundlesInLanguageMenu";
 
 @interface Bundle (AlwaysShowInLanguageMenu)
@@ -76,7 +24,7 @@ static NSString* const kAlwaysShowBundlesKey = @"alwaysShowBundlesInLanguageMenu
 		return NO;
 	if(bundles::item_ptr item = bundles::lookup(to_s(self.identifier.UUIDString)))
 	{
-		if(item->menu().empty())
+		if(item->menu().empty() || item->disabled())
 			return NO;
 	}
 	NSArray* uuids = [[NSUserDefaults standardUserDefaults] arrayForKey:kAlwaysShowBundlesKey] ?: @[];
@@ -90,7 +38,7 @@ static NSString* const kAlwaysShowBundlesKey = @"alwaysShowBundlesInLanguageMenu
 
 	if(bundles::item_ptr item = bundles::lookup(to_s(self.identifier.UUIDString)))
 	{
-		if(item->menu().empty())
+		if(item->menu().empty() || item->disabled())
 			return;
 	}
 
@@ -131,13 +79,10 @@ static NSString* const kAlwaysShowBundlesKey = @"alwaysShowBundlesInLanguageMenu
 
 - (void)awakeFromNib
 {
-	[bundlesTableView tableColumnWithIdentifier:@"installed"].headerToolTip = @"Bundle installed";
 	[bundlesTableView tableColumnWithIdentifier:@"alwaysShow"].headerToolTip = @"Always show in Language menu";
 	[bundlesTableView setIndicatorImage:[NSImage imageNamed:@"NSAscendingSortIndicator"] inTableColumn:[bundlesTableView tableColumnWithIdentifier:@"name"]];
 	arrayController.sortDescriptors = @[
 		[NSSortDescriptor sortDescriptorWithKey:@"name" ascending:YES selector:@selector(localizedCompare:)],
-		[NSSortDescriptor sortDescriptorWithKey:@"installed" ascending:YES],
-		[NSSortDescriptor sortDescriptorWithKey:@"downloadLastUpdated" ascending:YES],
 		[NSSortDescriptor sortDescriptorWithKey:@"textSummary" ascending:YES selector:@selector(localizedCompare:)]
 	];
 }
@@ -212,8 +157,6 @@ static NSString* const kAlwaysShowBundlesKey = @"alwaysShowBundlesInLanguageMenu
 {
 	NSDictionary* map = @{
 		@"name":        @"name",
-		@"installed":   @"installed",
-		@"date":        @"downloadLastUpdated",
 		@"description": @"textSummary"
 	};
 
@@ -244,26 +187,14 @@ static NSString* const kAlwaysShowBundlesKey = @"alwaysShowBundlesInLanguageMenu
 
 - (void)tableView:(NSTableView*)aTableView willDisplayCell:(id)aCell forTableColumn:(NSTableColumn*)aTableColumn row:(NSInteger)rowIndex
 {
-	if([[aTableColumn identifier] isEqualToString:@"link"])
-	{
-		Bundle* bundle = arrayController.arrangedObjects[rowIndex];
-		BOOL enabled = bundle.htmlURL ? YES : NO;
-		[aCell setEnabled:enabled];
-		[aCell setImage:enabled ? [NSImage imageNamed:@"NSFollowLinkFreestandingTemplate"] : nil];
-	}
-	else if([[aTableColumn identifier] isEqualToString:@"installed"])
-	{
-		Bundle* bundle = arrayController.arrangedObjects[rowIndex];
-		[aCell setEnabled:!bundle.isMandatory || !bundle.isInstalled];
-	}
-	else if([[aTableColumn identifier] isEqualToString:@"alwaysShow"])
+	if([[aTableColumn identifier] isEqualToString:@"alwaysShow"])
 	{
 		Bundle* bundle = arrayController.arrangedObjects[rowIndex];
 		BOOL hasMenu = NO;
 		if(bundle.isInstalled)
 		{
 			if(bundles::item_ptr item = bundles::lookup(to_s(bundle.identifier.UUIDString)))
-				hasMenu = !item->menu().empty();
+				hasMenu = !item->menu().empty() && !item->disabled();
 		}
 		[aCell setEnabled:hasMenu];
 	}
@@ -271,11 +202,6 @@ static NSString* const kAlwaysShowBundlesKey = @"alwaysShowBundlesInLanguageMenu
 
 - (BOOL)tableView:(NSTableView*)aTableView shouldEditTableColumn:(NSTableColumn*)aTableColumn row:(NSInteger)rowIndex
 {
-	if([[aTableColumn identifier] isEqualToString:@"installed"])
-	{
-		Bundle* bundle = arrayController.arrangedObjects[rowIndex];
-		return bundle.isInstalled != -1;
-	}
 	if([[aTableColumn identifier] isEqualToString:@"alwaysShow"])
 	{
 		Bundle* bundle = arrayController.arrangedObjects[rowIndex];
@@ -287,23 +213,13 @@ static NSString* const kAlwaysShowBundlesKey = @"alwaysShowBundlesInLanguageMenu
 - (BOOL)tableView:(NSTableView*)aTableView shouldSelectRow:(NSInteger)rowIndex
 {
 	NSInteger clickedColumn = [aTableView clickedColumn];
-	return clickedColumn != [aTableView columnWithIdentifier:@"installed"] && clickedColumn != [aTableView columnWithIdentifier:@"link"] && clickedColumn != [aTableView columnWithIdentifier:@"alwaysShow"];
+	return clickedColumn != [aTableView columnWithIdentifier:@"alwaysShow"];
 }
 
 - (NSString*)tableView:(NSTableView*)aTableView toolTipForCell:(NSCell*)aCell rect:(NSRectPointer)rect tableColumn:(NSTableColumn*)aTableColumn row:(NSInteger)row mouseLocation:(NSPoint)mouseLocation
 {
-	if([[aTableColumn identifier] isEqualToString:@"installed"])
-		return @"Bundle installed";
 	if([[aTableColumn identifier] isEqualToString:@"alwaysShow"])
 		return @"Always show in Language menu";
 	return nil;
-}
-
-- (IBAction)didClickBundleLink:(NSTableView*)aTableView
-{
-	NSInteger rowIndex = [aTableView clickedRow];
-	Bundle* bundle = arrayController.arrangedObjects[rowIndex];
-	if(bundle.htmlURL)
-		[[NSWorkspace sharedWorkspace] openURL:bundle.htmlURL];
 }
 @end

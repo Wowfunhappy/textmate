@@ -1,0 +1,23 @@
+#!/bin/sh
+
+# This script is designed for backwards compatibility with bundle items that
+# were designed for ruby 1.8. It uses the system Ruby 1.8 if available,
+# otherwise falls back to the copy shipped with TextMate in SharedSupport.
+
+if [[ -e /System/Library/Frameworks/Ruby.framework/Versions/1.8/usr/bin/ruby ]]; then
+	exec /System/Library/Frameworks/Ruby.framework/Versions/1.8/usr/bin/ruby "$@"
+fi
+
+# Use the Ruby 1.8.7 shipped with TextMate
+app_ruby="$TM_APP_PATH/Contents/SharedSupport/ruby1.8.7/bin/ruby"
+if [[ -x "$app_ruby" ]]; then
+	exec "$app_ruby" -r"$TM_SUPPORT_PATH/private/ruby18_fix_loadpath.rb" "$@"
+fi
+
+# Last resort: try the user-installed copy
+if [[ -e ~/Library/Application\ Support/TextMate/Ruby/1.8.7/bin/ruby ]]; then
+	exec ~/Library/Application\ Support/TextMate/Ruby/1.8.7/bin/ruby -r"$TM_SUPPORT_PATH/private/ruby18_fix_loadpath.rb" "$@"
+fi
+
+echo >&2 "Unable to find ruby 1.8."
+exit 1

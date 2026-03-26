@@ -44,7 +44,7 @@ OAK_DEBUG_VAR(AppController_Menus);
 	std::multimap<std::string, bundles::item_ptr, text::less_t> grammars;
 	for(auto const& item : bundles::query(bundles::kFieldAny, NULL_STR, scope::wildcard, bundles::kItemTypeGrammar))
 	{
-		if(item->value_for_field(bundles::kFieldGrammarScope) != NULL_STR && !item->hidden_from_user())
+		if(item->value_for_field(bundles::kFieldGrammarScope) != NULL_STR && !item->hidden_from_user() && item->name() != "HTML (Derivative)" && item->name() != "Properties")
 			grammars.emplace(item->name(), item);
 	}
 

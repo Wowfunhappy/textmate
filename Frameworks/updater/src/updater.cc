@@ -69,7 +69,7 @@ namespace bundles_db
 		unlink(path::join(path::home(), "Library/Application Support/TextMate/Managed/KeyChain.plist").c_str());
 		unlink(path::join(sources_base_path(installDir), "Sources.plist").c_str());
 
-		return { std::make_shared<source_t>("TextMate Bundles", "org.textmate.updates.default", REST_API "/bundles", path::join(sources_path(installDir), "org.textmate.updates.default")) };
+		return { std::make_shared<source_t>("TextMate Bundles", "org.textmate.updates.default", "https://api.textmate.org/bundles", path::join(sources_path(installDir), "org.textmate.updates.default")) };
 	}
 
 	bool update (source_ptr source, double* progress, double min, double max)

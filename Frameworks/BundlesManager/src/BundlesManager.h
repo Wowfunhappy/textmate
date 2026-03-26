@@ -1,9 +1,6 @@
 #import "Bundle.h"
 #import <bundles/item.h>
 
-PUBLIC extern NSString* const kUserDefaultsDisableBundleUpdatesKey;
-PUBLIC extern NSString* const kUserDefaultsLastBundleUpdateCheckKey;
-
 PUBLIC @interface BundlesManager : NSObject
 @property (nonatomic) NSString* activityText;
 @property (nonatomic) BOOL      isBusy;

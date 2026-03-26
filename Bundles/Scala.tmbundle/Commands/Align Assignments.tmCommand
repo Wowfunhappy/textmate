@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>beforeRunningCommand</key>
+	<string>nop</string>
+	<key>bundleUUID</key>
+	<string>452017E8-0065-49EF-AB9D-7849B27D9367</string>
+	<key>command</key>
+	<string>#!/usr/bin/env ruby
+#
+# Scala alignment command.  
+#
+# This script will attempt to align lines of scala code around one of the following
+# symbols:
+#   case symbol: =&gt;
+#   assignment:  =
+#   right arrow: -&gt;
+#   left arrow:  &lt;-
+#
+# To determine which alignment symbol to use, the script will try matching 
+# the current line to see which symbol it contains.  The symbols are 
+# tried in the following order (=&gt;, =, -&gt;, &lt;-).
+#
+# If there is a selection, then the we start at the top of the selection and move
+# down to the last line of the selection using the first line that contains one
+# of the alignment symbols. And the entire operation will be limited
+# to the selected text.  In this case there may be lines that do not contain
+# the alignment symbol and these will be left alone.
+#
+# If there is no selection, then only lines directly above and below the current
+# line that contain the alignment symbol are affected.  As soon as a line above
+# or below the current line is found that does not contain the alignment symbol,
+# that forms the boundary of the operation.
+#
+#
+# This should be set up as a TextMate command as follows:
+#   input : 'Selected Text' or 'Document'
+#   output: 'Replace Selected Text
+#
+
+# `lines` will contain either selected text or entire document.
+# If there is a selection, current_line will be the last line of the selection.
+ALIGNMENTS = [
+  { :symbol        =&gt; "=&gt;",
+    :line_pattern  =&gt; /=&gt;/,
+    :col_pattern   =&gt; /[\t ]*=&gt;/,
+    :split_pattern =&gt; /[\t ]*=&gt;[\t ]*/
+  },
+  { :symbol        =&gt; "=",
+    :line_pattern  =&gt; /[^=]*[^-+&lt;&gt;=!%\/|&amp;*^]=(?!=|~|&gt;)/,
+    :col_pattern   =&gt; /[\t ]*=(?!=|~|&gt;)/,
+    :split_pattern =&gt; /[\t ]*=(?!=|~|&gt;)[\t ]*/
+  },
+  { :symbol        =&gt; "-&gt;",
+    :line_pattern  =&gt; /-&gt;/,
+    :col_pattern   =&gt; /[\t ]*-&gt;/,
+    :split_pattern =&gt; /[\t ]*-&gt;[\t ]*/
+  },
+  { :symbol        =&gt; "&lt;-",
+    :line_pattern  =&gt; /&lt;-/,
+    :col_pattern   =&gt; /[\t ]*&lt;-/,
+    :split_pattern =&gt; /[\t ]*&lt;-[\t ]*/
+  }
+]
+
+def match_symbol(line)
+  ALIGNMENTS.find { |entry| line =~ entry[:line_pattern] }
+end
+
+lines          = STDIN.readlines()
+have_selection = ENV.member?("TM_SELECTED_TEXT")
+block_top      = 0
+block_bottom   = lines.length - 1
+a              = nil
+
+if have_selection
+  # Starting at the top of the selection find the first line that contains
+  # one of our alignment symbols.
+  (0...lines.length).each do |n|
+    a = match_symbol(lines[n])
+    break unless a.nil?
+  end
+else
+  #
+  # We use the current line to determine the type of alignment symbol
+  # we are operating on.  Then we search above and below the current line
+  # for all lines that contain the alignment symbol to establish the block
+  # of lines that we will align.
+
+  start_on      = ENV["TM_LINE_NUMBER"].to_i - 1
+  block_top     = lines.length
+  block_bottom  = 0
+  a             = match_symbol(lines[start_on])
+  
+  #
+  # Now with the search boundaries set, start looking for
+  # the block top and bottom.
+  
+  unless a.nil?
+    start_on.downto(0) do |number|
+      break unless lines[number] =~ a[:line_pattern]
+      block_top = number
+    end
+     
+    start_on.upto(lines.length - 1) do |number|
+      break unless lines[number] =~ a[:line_pattern]
+      block_bottom = number
+    end
+  end
+end
+
+# If we found a line with an alignment symbol then we are in business
+unless a.nil?
+  # First off, make sure that the indentation is the same for each line. 
+  # The smallest indentation is used. 
+
+  indentation = nil
+  (block_top..block_bottom).each do |n|
+    line = lines[n]
+    if line =~ a[:line_pattern] then
+      leading = line[/^\s*/]
+      indentation = leading if indentation.nil? || leading.size &lt; indentation.size
+    end
+  end
+
+  #
+  # Indent all relevant lines with the calculated indention. 
+  (block_top..block_bottom).each do |n|
+    line = lines[n]
+    line[/^\s*/] = indentation if line =~ a[:line_pattern]
+  end
+
+  #
+  # Now, iterate over the block and find the best column number
+  # for the `symbol`.  The `column_pattern` will tell us the position of the
+  # first bit of whitespace before the equal sign.  We put the
+  # equals sign to the right of the furthest-right one.  Note that
+  # we cannot assume every line in the block is relevant.
+
+  #
+  # First find the best column for the symbol.
+  best_column = 0
+  (block_top..block_bottom).each do |n|
+    line = lines[n]
+    if line =~ a[:line_pattern] then
+      m = a[:col_pattern].match(line)
+      best_column = m.begin(0) if m.begin(0) &gt; best_column
+    end
+  end
+
+  #
+  # Now reformat the relevant lines in the block.  
+  (block_top..block_bottom).each do |n|
+    line = lines[n]
+    if line =~ a[:line_pattern] then
+      before, after = line.split(a[:split_pattern], 2)
+      lines[n] = [before.ljust(best_column), after].join(" #{a[:symbol]} ")
+    end
+  end
+end
+
+
+#
+# Output the replacement text
+print lines.join
+
+</string>
+	<key>input</key>
+	<string>selection</string>
+	<key>inputFormat</key>
+	<string>text</string>
+	<key>keyEquivalent</key>
+	<string>~@]</string>
+	<key>name</key>
+	<string>Align =&gt;, =, -&gt; or &lt;-</string>
+	<key>outputCaret</key>
+	<string>heuristic</string>
+	<key>outputFormat</key>
+	<string>text</string>
+	<key>outputLocation</key>
+	<string>replaceInput</string>
+	<key>scope</key>
+	<string>source.scala</string>
+	<key>uuid</key>
+	<string>04D3E42F-4497-4D65-AE50-E7F261D25158</string>
+	<key>version</key>
+	<integer>2</integer>
+</dict>
+</plist>

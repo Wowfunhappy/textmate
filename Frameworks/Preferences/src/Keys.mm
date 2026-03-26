@@ -26,8 +26,6 @@ static NSDictionary* default_settings ()
 		kUserDefaultsFoldersOnTopKey:            @YES,
 		kUserDefaultsShowFileExtensionsKey:      @NO,
 		kUserDefaultsEnvironmentVariablesKey:    default_environment(),
-		kUserDefaultsDisableBundleUpdatesKey:    @NO,
-		kUserDefaultsLastBundleUpdateCheckKey:   [NSDate distantPast],
 		kUserDefaultsDisableRMateServerKey:      @NO,
 		kUserDefaultsRMateServerListenKey:       kRMateServerListenLocalhost,
 		kUserDefaultsRMateServerPortKey:         @"52698",

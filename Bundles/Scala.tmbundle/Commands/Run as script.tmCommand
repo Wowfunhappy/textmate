@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>beforeRunningCommand</key>
+	<string>saveActiveFile</string>
+	<key>command</key>
+	<string>#!/usr/bin/env ruby18 -wKU
+
+require "#{ENV['TM_SUPPORT_PATH']}/lib/tm/executor"
+require "#{ENV['TM_SUPPORT_PATH']}/lib/tm/save_current_document"
+
+TextMate.save_if_untitled('scala')
+scala_home = ENV['TM_SCALA_HOME'] || ENV['SCALA_HOME']
+unless scala_home
+  puts '&lt;p style="color: red;"&gt;Cannot find scala.  Please set one of: TM_SCALA_HOME, SCALA_HOME&lt;/p&gt;'
+  exit
+end
+TextMate::Executor.run("#{scala_home}/bin/scala", '-nocompdaemon', '-howtorun:script', ENV['TM_FILEPATH'], 
+                       :version_args    =&gt; ["-version"],
+                       :version_regex   =&gt; /\A(?:Scala code runner version (\S*)).*/m,
+                       :version_replace =&gt; 'Scala \1')
+
+
+
+
+</string>
+	<key>input</key>
+	<string>document</string>
+	<key>inputFormat</key>
+	<string>text</string>
+	<key>keyEquivalent</key>
+	<string>@r</string>
+	<key>name</key>
+	<string>Run as script</string>
+	<key>outputCaret</key>
+	<string>afterOutput</string>
+	<key>outputFormat</key>
+	<string>html</string>
+	<key>outputLocation</key>
+	<string>newWindow</string>
+	<key>scope</key>
+	<string>source.scala</string>
+	<key>uuid</key>
+	<string>DDFBBCF9-D333-4077-8D4F-EF6F2CA62220</string>
+	<key>version</key>
+	<integer>2</integer>
+</dict>
+</plist>

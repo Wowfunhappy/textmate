@@ -472,47 +472,6 @@ BOOL HasDocumentWindow (NSArray* windows)
 	}
 
 	[[TMPlugInController sharedInstance] loadAllPlugIns:nil];
-
-	std::string dest = path::join(path::home(), "Library/Application Support/TextMate/Managed");
-	if(!path::exists(dest))
-	{
-		if(NSString* archive = [[NSBundle mainBundle] pathForResource:@"DefaultBundles" ofType:@"tbz"])
-		{
-			path::make_dir(dest);
-
-			network::tbz_t tbz(dest);
-			if(tbz)
-			{
-				int fd = open([archive fileSystemRepresentation], O_RDONLY|O_CLOEXEC);
-				if(fd != -1)
-				{
-					char buf[4096];
-					ssize_t len;
-					while((len = read(fd, buf, sizeof(buf))) > 0)
-					{
-						if(write(tbz.input_fd(), buf, len) != len)
-						{
-							fprintf(stderr, "*** error writing bytes to tar\n");
-							break;
-						}
-					}
-					close(fd);
-				}
-
-				std::string output, error;
-				if(!tbz.wait_for_tbz(&output, &error))
-					fprintf(stderr, "%s: %s%s\n", getprogname(), output.c_str(), error.c_str());
-			}
-			else
-			{
-				fprintf(stderr, "%s: unable to launch tar\n", getprogname());
-			}
-		}
-		else
-		{
-			fprintf(stderr, "%s: no ‘DefaultBundles.tbz’ in TextMate.app\n", getprogname());
-		}
-	}
 	[[BundlesManager sharedInstance] loadBundlesIndex];
 
 	{

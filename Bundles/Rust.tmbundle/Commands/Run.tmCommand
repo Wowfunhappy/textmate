@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>beforeRunningCommand</key>
+	<string>saveActiveFile</string>
+	<key>command</key>
+	<string>#!/usr/bin/env ruby18 -wKU
+
+require "#{ENV['TM_SUPPORT_PATH']}/lib/tm/executor"
+require "#{ENV['TM_SUPPORT_PATH']}/lib/tm/save_current_document"
+require "shellwords"
+
+TextMate.save_if_untitled('rs')
+TextMate::Executor.make_project_master_current_document
+TextMate::Process.run(["cd", ENV['TM_PROJECT_DIRECTORY'] || ENV['TM_DIRECTORY']])
+args = Shellwords.split(ENV['TM_RUST']) &lt;&lt; ENV['TM_FILEPATH']
+TextMate::Executor.run(args, :version_args =&gt; ["--version"],
+                             :version_regex =&gt; /\Arustc ([^\n]*)\n.*/m)
+</string>
+	<key>input</key>
+	<string>document</string>
+	<key>inputFormat</key>
+	<string>text</string>
+	<key>keyEquivalent</key>
+	<string>@R</string>
+	<key>name</key>
+	<string>Run</string>
+	<key>outputCaret</key>
+	<string>afterOutput</string>
+	<key>outputFormat</key>
+	<string>html</string>
+	<key>outputLocation</key>
+	<string>newWindow</string>
+	<key>requiredCommands</key>
+	<array>
+		<dict>
+			<key>command</key>
+			<string>rustc</string>
+			<key>locations</key>
+			<array>
+				<string>/usr/local/bin/rustc</string>
+				<string>/opt/local/bin/rustc</string>
+			</array>
+			<key>variable</key>
+			<string>TM_RUST</string>
+		</dict>
+	</array>
+	<key>scope</key>
+	<string>source.rust</string>
+	<key>semanticClass</key>
+	<string>process.run.rust</string>
+	<key>uuid</key>
+	<string>C6D4863F-A61B-4284-A5D4-C72F8555CC40</string>
+	<key>version</key>
+	<integer>2</integer>
+</dict>
+</plist>
