@@ -621,8 +621,11 @@ struct refresh_helper_t
 
 				if(_revision != documentView->revision() || _selection != documentView->ranges())
 				{
-					if(_revision != documentView->revision())
-						[_self.textFinder noteClientStringWillChange];
+					if(_revision != documentView->revision() && [[_self enclosingScrollView] isFindBarVisible])
+				{
+					if([_self.textFinder respondsToSelector:@selector(_clearContentString)])
+						[_self.textFinder performSelector:@selector(_clearContentString)];
+				}
 					[_self updateMarkedRanges];
 					[_self updateSelection];
 					[_self updateSymbol];
@@ -1238,8 +1241,8 @@ doScroll:
 			continue;
 
 		ng::range_t r = [self rangeForNSRange:range];
-		NSRect rect = documentView->rect_for_range(r.min().index, r.max().index, true);
-		_findMatchRects.push_back(rect);
+		for(auto const& rect : documentView->rects_for_ranges(r, kRectsIncludeSelections))
+			_findMatchRects.push_back(rect);
 	}
 }
 

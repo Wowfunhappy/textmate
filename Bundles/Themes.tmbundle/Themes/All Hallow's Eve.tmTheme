@@ -5,16 +5,14 @@
 	<key>author</key>
 	<string>David Heinemeier Hansson</string>
 	<key>name</key>
-	<string>All Hallow's Eve</string>
-	<key>semanticClass</key>
-	<string>theme.dark.all-hallows-eve</string>
+	<string>All Hallow's Eve Custom</string>
 	<key>settings</key>
 	<array>
 		<dict>
 			<key>settings</key>
 			<dict>
 				<key>background</key>
-				<string>#000000</string>
+				<string>#131313</string>
 				<key>caret</key>
 				<string>#FFFFFF</string>
 				<key>foreground</key>
@@ -34,8 +32,6 @@
 			<string>text</string>
 			<key>settings</key>
 			<dict>
-				<key>background</key>
-				<string>#434242</string>
 				<key>foreground</key>
 				<string>#FFFFFF</string>
 			</dict>
@@ -44,37 +40,9 @@
 			<key>name</key>
 			<string>Source base</string>
 			<key>scope</key>
-			<string>source - source source</string>
+			<string>source</string>
 			<key>settings</key>
 			<dict>
-				<key>background</key>
-				<string>#000000</string>
-				<key>foreground</key>
-				<string>#FFFFFF</string>
-			</dict>
-		</dict>
-		<dict>
-			<key>name</key>
-			<string>Embedded source (text)</string>
-			<key>scope</key>
-			<string>text meta.embedded</string>
-			<key>settings</key>
-			<dict>
-				<key>background</key>
-				<string>#000000</string>
-				<key>foreground</key>
-				<string>#FFFFFF</string>
-			</dict>
-		</dict>
-		<dict>
-			<key>name</key>
-			<string>Embedded source (source)</string>
-			<key>scope</key>
-			<string>source meta.embedded</string>
-			<key>settings</key>
-			<dict>
-				<key>background</key>
-				<string>#181818</string>
 				<key>foreground</key>
 				<string>#FFFFFF</string>
 			</dict>
@@ -300,6 +268,6 @@
 		</dict>
 	</array>
 	<key>uuid</key>
-	<string>37F22BDC-B2F4-11D9-850C-000A95A89C98</string>
+	<string>7D892C2F-8930-4CEF-B414-2E5EAFF94BF7</string>
 </dict>
 </plist>

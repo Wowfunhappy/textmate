@@ -387,6 +387,7 @@ static CGFloat const kShadowPadding = 4.0;
 		for(NSString* key in documentKeys)
 			[oldDocument removeObserver:self forKeyPath:key];
 		[[NSNotificationCenter defaultCenter] removeObserver:self name:OakDocumentMarksDidChangeNotification object:oldDocument];
+		[[NSNotificationCenter defaultCenter] removeObserver:self name:OakDocumentDidReloadNotification object:oldDocument];
 	}
 
 	if(aDocument)
@@ -395,6 +396,7 @@ static CGFloat const kShadowPadding = 4.0;
 	if(_document = aDocument)
 	{
 		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(documentMarksDidChange:) name:OakDocumentMarksDidChangeNotification object:self.document];
+		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(documentDidReload:) name:OakDocumentDidReloadNotification object:self.document];
 		for(NSString* key in documentKeys)
 			[self.document addObserver:self forKeyPath:key options:NSKeyValueObservingOptionInitial context:nullptr];
 	}
@@ -403,9 +405,7 @@ static CGFloat const kShadowPadding = 4.0;
 	[gutterView reloadData:self];
 	[self updateStyle];
 
-	// Notify NSTextFinder that the content has changed (tab switch)
-	[_textFinder noteClientStringWillChange];
-	if([_textFinder respondsToSelector:@selector(_clearContentString)])
+	if(textScrollView.isFindBarVisible && [_textFinder respondsToSelector:@selector(_clearContentString)])
 		[_textFinder performSelector:@selector(_clearContentString)];
 	[_textFinder cancelFindIndicator];
 	[_textView recomputeFindMatchRects];
@@ -580,6 +580,15 @@ static CGFloat const kShadowPadding = 4.0;
 - (void)performFindPanelAction:(id)sender
 {
 	NSInteger tag = [sender tag];
+
+	// Clear cached content when showing the find bar, or when searching
+	// with the bar closed (Find Next/Previous via Cmd+G)
+	if(!textScrollView.isFindBarVisible)
+	{
+		if([_textFinder respondsToSelector:@selector(_clearContentString)])
+			[_textFinder performSelector:@selector(_clearContentString)];
+	}
+
 	[_textFinder performAction:(NSTextFinderAction)tag];
 
 	// Re-sync gutter when find bar opens/closes (changes clip view frame)
@@ -613,6 +622,13 @@ static CGFloat const kShadowPadding = 4.0;
 			for(NSView* v in [dimmingWindow.contentView.subviews copy])
 				if([v isKindOfClass:[OakFindCutoutView class]])
 					[v removeFromSuperview];
+		}
+
+		// Dimming window may not exist yet — retry shortly
+		if(!dimmingWindow && !rects.empty())
+		{
+			[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(deferredCutoutUpdate) object:nil];
+			[self performSelector:@selector(deferredCutoutUpdate) withObject:nil afterDelay:0.05];
 		}
 		return;
 	}
@@ -665,6 +681,12 @@ static CGFloat const kShadowPadding = 4.0;
 		[existingCutouts[reuseIndex++] removeFromSuperview];
 
 	[dimContentView setNeedsDisplay:YES];
+}
+
+- (void)deferredCutoutUpdate
+{
+	[_textView recomputeFindMatchRects];
+	[self updateFindHighlightWindow];
 }
 
 - (BOOL)validateMenuItem:(NSMenuItem*)aMenuItem
@@ -1061,6 +1083,12 @@ static CGFloat const kShadowPadding = 4.0;
 - (void)documentMarksDidChange:(NSNotification*)aNotification
 {
 	[[NSNotificationCenter defaultCenter] postNotificationName:GVColumnDataSourceDidChange object:self];
+}
+
+- (void)documentDidReload:(NSNotification*)aNotification
+{
+	if(textScrollView.isFindBarVisible && [_textFinder respondsToSelector:@selector(_clearContentString)])
+		[_textFinder performSelector:@selector(_clearContentString)];
 }
 
 // ============
