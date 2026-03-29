@@ -160,9 +160,12 @@ static NSMutableSet<OakCommandRefresher*>* CommandRefreshers = [NSMutableSet set
 - (void)teardown
 {
 	[[NSNotificationCenter defaultCenter] removeObserver:self];
-	[_command.htmlOutputView removeObserver:self forKeyPath:@"visible"];
+	@try { [_command.htmlOutputView removeObserver:self forKeyPath:@"visible"]; }
+	@catch (NSException*) { }
 	[_idleTimer invalidate];
 	_idleTimer = nil;
+	_command = nil;
+	_document = nil;
 	[CommandRefreshers removeObject:self];
 }
 

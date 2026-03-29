@@ -132,7 +132,7 @@ module TextMate
 
       def saved_theme
         res = %x{ defaults 2>/dev/null read com.macromates.textmate.webpreview SelectedTheme }.chomp
-        $? == 0 ? res : 'plain'
+        $? == 0 ? res : 'light'
       end
     end
   end
