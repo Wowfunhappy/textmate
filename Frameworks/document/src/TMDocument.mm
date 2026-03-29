@@ -214,6 +214,26 @@ OAK_DEBUG_VAR(TMDocument);
 	return self.oakDocument.isDocumentEdited || [super isDocumentEdited];
 }
 
+- (void)relinquishPresentedItemToWriter:(void (^)(void (^reacquirer)(void)))writer
+{
+	// NSDocument's default implementation dispatches to the main thread via
+	// _performFileAccessOnMainThread:, which deadlocks when the main thread
+	// is already inside a coordinated save (the autosave path). Call the
+	// writer block directly on the current thread to break the cycle.
+	writer(^{
+		dispatch_async(dispatch_get_main_queue(), ^{
+			if(self.fileURL)
+			{
+				[self.fileURL removeCachedResourceValueForKey:NSURLContentModificationDateKey];
+				NSDate* modDate = nil;
+				[self.fileURL getResourceValue:&modDate forKey:NSURLContentModificationDateKey error:nil];
+				if(modDate)
+					self.fileModificationDate = modDate;
+			}
+		});
+	});
+}
+
 - (BOOL)hasUnautosavedChanges
 {
 	return self.oakDocument.isDocumentEdited || [super hasUnautosavedChanges];
