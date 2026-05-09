@@ -181,7 +181,10 @@ OAK_DEBUG_VAR(TMDocument);
 - (void)oakDocumentWillClose:(NSNotification*)notification
 {
 	D(DBF_TMDocument, bug("%s\n", self.oakDocument.displayName.UTF8String););
-	// Remove from NSDocumentController
+	// Prevent self from being deallocated during removeDocument:
+	// as NSDocumentController may access our properties (e.g. autosavedContentsFileURL)
+	TMDocument* __attribute__((objc_precise_lifetime)) ref = self;
+	[[NSNotificationCenter defaultCenter] removeObserver:self name:OakDocumentWillCloseNotification object:nil];
 	[[NSDocumentController sharedDocumentController] removeDocument:self];
 	[[TMDocumentRegistry sharedRegistry] unregisterOakDocument:self.oakDocument];
 }
