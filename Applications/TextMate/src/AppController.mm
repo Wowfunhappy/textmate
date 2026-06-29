@@ -135,9 +135,16 @@ BOOL HasDocumentWindow (NSArray* windows)
 				{ @"Don't Automatically Close This Tab", @selector(toggleSticky:)            },
 				{ /* -------- */ },
 				{ @"Save",                    @selector(saveDocument:),             @"s"   },
-				{ @"Save As…",                @selector(saveDocumentAs:),           @"S"   },
-				{ @"Save All",                @selector(saveAllDocuments:),         @"s", .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagOption },
-				{ @"Revert",                  @selector(revertDocumentToSaved:)            },
+				{ @"Duplicate",               @selector(duplicateDocument:),        @"S"   },
+				{ @"Save As…",                @selector(saveDocumentAs:),           @"S", .modifierFlags = NSEventModifierFlagCommand|NSEventModifierFlagShift|NSEventModifierFlagOption, .alternate = YES },
+				{ @"Rename…",                 @selector(renameDocument:)                  },
+				{ @"Move To…",                @selector(moveDocument:)                    },
+				{ @"Revert To",
+					.submenu = {
+						{ @"Last Saved",           @selector(revertDocumentToSaved:) },
+						{ @"Browse All Versions…", @selector(browseAllVersions:)     },
+					}
+				},
 				{ /* -------- */ },
 				{ @"Print…",                  @selector(printDocument:),            @"p"   },
 			}

@@ -16,13 +16,22 @@ OAK_DEBUG_VAR(TMDocument);
 @property (nonatomic, readwrite) OakDocument* oakDocument;
 @property (nonatomic, readwrite) TMWindowController* tmWindowController;
 @property (nonatomic) BOOL reloading;
+@property (nonatomic) NSTimer* autosaveTimer;
+@property (nonatomic) NSDate* lastVersionDate;
+@property (nonatomic) BOOL performingIdleAutosave;
 @end
 
 @implementation TMDocument
 
 + (BOOL)autosavesInPlace
 {
-	return YES;
+	// Deliberately NO. Autosave-in-place engages NSDocument's coordinated-save
+	// and presented-item machinery, which deadlocks/crashes against OakDocument's
+	// own file ownership (its kqueue watcher, undo, and save path). We instead
+	// drive autosave ourselves on an idle timer (see -scheduleIdleAutosave) and
+	// author revisions explicitly via NSFileVersion. The native Versions browser
+	// still works because +preservesVersions remains YES (verified on 10.9).
+	return NO;
 }
 
 + (BOOL)preservesVersions
@@ -120,6 +129,7 @@ OAK_DEBUG_VAR(TMDocument);
 - (void)dealloc
 {
 	D(DBF_TMDocument, bug("unwrap %s\n", _oakDocument.displayName.UTF8String););
+	[_autosaveTimer invalidate];
 	[[NSNotificationCenter defaultCenter] removeObserver:self];
 	[_oakDocument removeObserver:self forKeyPath:@"path"];
 }
@@ -136,13 +146,73 @@ OAK_DEBUG_VAR(TMDocument);
 	}
 }
 
+- (void)setFileURL:(NSURL*)url
+{
+	[super setFileURL:url];
+	// When NSDocument changes the URL itself (Rename… / Move To…), propagate to
+	// OakDocument. -[OakDocument setPath:] only repoints the logical path; the
+	// file has already been moved on disk by NSDocument. The path→fileURL KVO
+	// sets the same value back, where setPath early-returns, so there's no loop.
+	NSString* path = url.filePathURL.path;
+	if(path && ![self.oakDocument.path isEqualToString:path])
+		self.oakDocument.path = path;
+}
+
 // MARK: - OakDocument Notification Handlers
 
 - (void)oakDocumentContentDidChange:(NSNotification*)notification
 {
 	D(DBF_TMDocument, bug("%s reloading=%d\n", self.oakDocument.displayName.UTF8String, _reloading););
 	if(!_reloading)
+	{
 		[self updateChangeCount:NSChangeDone];
+		[self scheduleIdleAutosave];
+	}
+}
+
+// MARK: - Idle Autosave (replaces NSDocument autosave-in-place)
+
+- (void)scheduleIdleAutosave
+{
+	// Only autosave documents that have a backing file; untitled documents are
+	// handled by crash-recovery drafts (NSAutosaveElsewhereOperation).
+	if(!self.fileURL || _reloading)
+		return;
+
+	[self.autosaveTimer invalidate];
+	self.autosaveTimer = [NSTimer scheduledTimerWithTimeInterval:[[self class] autosavingDelay] target:self selector:@selector(idleAutosaveFired:) userInfo:nil repeats:NO];
+}
+
+- (void)cancelIdleAutosave
+{
+	[self.autosaveTimer invalidate];
+	self.autosaveTimer = nil;
+}
+
+- (void)idleAutosaveFired:(NSTimer*)timer
+{
+	self.autosaveTimer = nil;
+	if(!self.fileURL || _reloading || !self.oakDocument.isDocumentEdited)
+		return;
+
+	D(DBF_TMDocument, bug("%s\n", self.oakDocument.displayName.UTF8String););
+	_performingIdleAutosave = YES;
+	[self saveToURL:self.fileURL ofType:self.fileType forSaveOperation:NSSaveOperation completionHandler:^(NSError* errorOrNil){
+		_performingIdleAutosave = NO;
+		if(errorOrNil)
+			D(DBF_TMDocument, bug("idle autosave failed: %s\n", errorOrNil.localizedDescription.UTF8String););
+	}];
+}
+
+- (void)preserveVersionOfURL:(NSURL*)url
+{
+	if(!url)
+		return;
+	// Author a revision in the same store the native Versions browser reads.
+	// Option 0 == copy (NSFileVersionAddingByMoving would move the live file).
+	NSError* error = nil;
+	if(![NSFileVersion addVersionOfItemAtURL:url withContentsOfURL:url options:0 error:&error])
+		D(DBF_TMDocument, bug("addVersion failed: %s\n", error.localizedDescription.UTF8String););
 }
 
 - (void)oakDocumentDidSave:(NSNotification*)notification
@@ -181,6 +251,7 @@ OAK_DEBUG_VAR(TMDocument);
 - (void)oakDocumentWillClose:(NSNotification*)notification
 {
 	D(DBF_TMDocument, bug("%s\n", self.oakDocument.displayName.UTF8String););
+	[self cancelIdleAutosave];
 	// Prevent self from being deallocated during removeDocument:
 	// as NSDocumentController may access our properties (e.g. autosavedContentsFileURL)
 	TMDocument* __attribute__((objc_precise_lifetime)) ref = self;
@@ -215,26 +286,6 @@ OAK_DEBUG_VAR(TMDocument);
 	// Check both OakDocument's state and NSDocument's change count
 	// This handles cases like duplicated documents that have NSDocument changes but OakDocument thinks it's saved
 	return self.oakDocument.isDocumentEdited || [super isDocumentEdited];
-}
-
-- (void)relinquishPresentedItemToWriter:(void (^)(void (^reacquirer)(void)))writer
-{
-	// NSDocument's default implementation dispatches to the main thread via
-	// _performFileAccessOnMainThread:, which deadlocks when the main thread
-	// is already inside a coordinated save (the autosave path). Call the
-	// writer block directly on the current thread to break the cycle.
-	writer(^{
-		dispatch_async(dispatch_get_main_queue(), ^{
-			if(self.fileURL)
-			{
-				[self.fileURL removeCachedResourceValueForKey:NSURLContentModificationDateKey];
-				NSDate* modDate = nil;
-				[self.fileURL getResourceValue:&modDate forKey:NSURLContentModificationDateKey error:nil];
-				if(modDate)
-					self.fileModificationDate = modDate;
-			}
-		});
-	});
 }
 
 - (BOOL)hasUnautosavedChanges
@@ -304,6 +355,7 @@ OAK_DEBUG_VAR(TMDocument);
 	oakDoc.observeFileSystem = NO;
 
 
+	BOOL isIdleAutosave = _performingIdleAutosave;
 	OakDocument* __weak weakOakDoc = oakDoc;
 	[super saveToURL:url ofType:typeName forSaveOperation:saveOperation completionHandler:^(NSError* errorOrNil){
 		OakDocument* strongOakDoc = weakOakDoc;
@@ -311,6 +363,17 @@ OAK_DEBUG_VAR(TMDocument);
 		{
 			if(strongOakDoc && strongOakDoc.isLoaded)
 				[strongOakDoc markDocumentSaved];
+
+			// Author a revision for the native Versions browser. Explicit saves
+			// always snapshot; idle autosaves are throttled so a long editing
+			// session doesn't flood the version store.
+			NSDate* now = [NSDate date];
+			BOOL throttled = isIdleAutosave && self.lastVersionDate && [now timeIntervalSinceDate:self.lastVersionDate] < 120;
+			if(!throttled)
+			{
+				[self preserveVersionOfURL:url];
+				self.lastVersionDate = now;
+			}
 		}
 		if(strongOakDoc)
 		{

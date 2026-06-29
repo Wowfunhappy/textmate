@@ -54,6 +54,7 @@ PUBLIC @interface OakDocument : NSObject
 @property (nonatomic) NSString* customName;
 @property (nonatomic, readonly) NSString* displayName;
 @property (nonatomic, readonly) NSImage* icon;
+@property (nonatomic, readonly) NSImage* proxyIcon; // like -icon but never dimmed for the edited state
 @property (nonatomic) NSString* backupPath;
 
 @property (nonatomic) NSString* fileType;     // Lazy: Depends on path and firstLine

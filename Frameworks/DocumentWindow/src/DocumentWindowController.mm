@@ -39,6 +39,18 @@
 #import <crash/info.h>
 #import <license/LicenseManager.h>
 
+// Private AppKit API (verified via class-dump on 10.9) used to reproduce the
+// modern autosaving-document title treatment — grey "Edited" text with no
+// close-button dot — which AppKit otherwise only installs for documents whose
+// class reports autosavesInPlace == YES (we keep that NO to avoid the
+// coordinated-save freezes). The combination below was confirmed empirically.
+@interface NSWindow (TMDocumentEditingState)
+- (void)_setDocumentEditingState:(long long)state animate:(BOOL)animate;
+@end
+@interface NSWindowController (TMAutosaveButton)
+- (void)_setShowAutosaveButton:(BOOL)flag;
+@end
+
 static NSString* const kUserDefaultsAlwaysFindInDocument = @"alwaysFindInDocument";
 static NSString* const kUserDefaultsDisableFolderStateRestore = @"disableFolderStateRestore";
 static NSString* const kUserDefaultsHideStatusBarKey = @"hideStatusBar";
@@ -105,6 +117,11 @@ static void show_command_error (std::string const& message, oak::uuid_t const& u
 
 @property (nonatomic, readwrite) OakDocument*     selectedDocument;
 @property (nonatomic) NSArrayController*          arrayController;
+
+// Saved chrome state while the OS version browser is open.
+@property (nonatomic) BOOL                        versionBrowserActive;
+@property (nonatomic) BOOL                        savedFileBrowserVisibleForVersionBrowser;
+@property (nonatomic) BOOL                        savedTabBarExpandedForVersionBrowser;
 
 + (void)scheduleSessionBackup:(id)sender;
 
@@ -214,6 +231,11 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(applicationDidBecomeActiveNotification:) name:NSApplicationDidBecomeActiveNotification object:NSApp];
 		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(applicationDidResignActiveNotification:) name:NSApplicationDidResignActiveNotification object:NSApp];
 		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(fileBrowserWillDelete:) name:FileBrowserWillDeleteNotification object:nil];
+
+		// Hide the tab bar and file browser while the OS version browser is open so
+		// its "current document" pane isn't cluttered; restore them on exit.
+		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(windowWillEnterVersionBrowser:) name:NSWindowWillEnterVersionBrowserNotification object:self.window];
+		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(windowDidExitVersionBrowser:) name:NSWindowDidExitVersionBrowserNotification object:self.window];
 
 		[self userDefaultsDidChange:nil];
 	}
@@ -440,6 +462,21 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 {
 	if(someDocuments.count == 0)
 		return callback(YES);
+
+	// On-disk documents autosave; flush any pending changes silently on close
+	// rather than prompting. Only truly-unsaved (untitled) documents prompt —
+	// closing them would otherwise lose data.
+	NSArray<OakDocument*>* onDiskEdited = [someDocuments filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"path != NULL"]];
+	if(onDiskEdited.count)
+	{
+		NSArray<OakDocument*>* untitledEdited = [someDocuments filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"path == NULL"]];
+		[self saveDocumentsUsingEnumerator:[onDiskEdited objectEnumerator] completionHandler:^(OakDocumentIOResult result){
+			if(result == OakDocumentIOResultSuccess)
+					[self showCloseWarningUIForDocuments:untitledEdited completionHandler:callback];
+			else	callback(NO); // a save failed — keep the document open
+		}];
+		return;
+	}
 
 	if(someDocuments.count == 1)
 	{
@@ -766,14 +803,23 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 			self.projectPath = [document.path stringByDeletingLastPathComponent];
 	}
 
+	// The title string (which may include the project folder) only changes when
+	// the path or display name changes — never on edited-state. Recomputing it on
+	// every autosave caused the folder to inconsistently appear/disappear. The
+	// grey "Edited" indicator is layered on by the autosave button separately.
 	if([keyPath isEqualToString:@"selectedDocument.path"] || [keyPath isEqualToString:@"selectedDocument.displayName"])
 		[self updateWindowTitle];
-	if([keyPath isEqualToString:@"selectedDocument.documentEdited"])
-		self.window.documentEdited = document.isDocumentEdited;
+	if([keyPath isEqualToString:@"selectedDocument.path"] || [keyPath isEqualToString:@"selectedDocument.displayName"] || [keyPath isEqualToString:@"selectedDocument.documentEdited"])
+		[self updateDocumentEditedIndicators];
 	if([keyPath isEqualToString:@"selectedDocument.onDisk"] || [keyPath isEqualToString:@"selectedDocument.path"])
 		self.window.representedFilename = document.isOnDisk ? document.path : @"";
 	if([keyPath isEqualToString:@"selectedDocument.onDisk"] || [keyPath isEqualToString:@"selectedDocument.icon"])
-		[self.window standardWindowButton:NSWindowDocumentIconButton].image = document.isOnDisk ? document.icon : nil;
+	{
+		// Use TextMate's custom document icon, but the non-dimmed variant: the
+		// proxy icon must not fade when the document is edited (the grey "Edited"
+		// text is the only edited-state signal).
+		[self.window standardWindowButton:NSWindowDocumentIconButton].image = document.isOnDisk ? document.proxyIcon : nil;
+	}
 
 	if([keyPath hasSuffix:@"arrangedObjects.path"] || [keyPath hasSuffix:@"arrangedObjects.displayName"] || [keyPath hasSuffix:@"arrangedObjects.documentEdited"])
 	{
@@ -1096,6 +1142,75 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 	}
 }
 
+// The modern document menu items (Duplicate / Rename / Move To / Browse All
+// Versions) are normally auto-installed by AppKit only when a document reports
+// autosavesInPlace == YES, which we deliberately turn off (it brings the
+// freeze-prone coordinated-save machinery). The underlying NSDocument actions
+// still work, so we expose them explicitly and forward to the selected
+// document's NSDocument wrapper (the responder chain reaches us, not it).
+- (TMDocument*)selectedTMDocument
+{
+	OakDocument* doc = self.selectedDocument;
+	return doc ? [[TMDocumentRegistry sharedRegistry] documentForOakDocument:doc] : nil;
+}
+
+- (IBAction)browseAllVersions:(id)sender
+{
+	if(self.selectedDocument.path)
+		[[self selectedTMDocument] browseDocumentVersions:sender];
+}
+
+- (IBAction)duplicateDocument:(id)sender
+{
+	[[self selectedTMDocument] duplicateDocument:sender];
+}
+
+- (void)windowWillEnterVersionBrowser:(NSNotification*)notification
+{
+	// AppKit posts this more than once per entry; capture the saved state only on
+	// the first, or the second call would overwrite it with the now-hidden values.
+	if(self.versionBrowserActive)
+		return;
+	self.versionBrowserActive = YES;
+
+	self.savedFileBrowserVisibleForVersionBrowser = self.fileBrowserVisible;
+	self.savedTabBarExpandedForVersionBrowser     = self.tabBarView.isExpanded;
+	if(self.fileBrowserVisible)
+		self.fileBrowserVisible = NO;
+	if(self.tabBarView.isExpanded)
+		self.tabBarView.expanded = NO;
+}
+
+- (void)windowDidExitVersionBrowser:(NSNotification*)notification
+{
+	if(!self.versionBrowserActive)
+		return;
+	self.versionBrowserActive = NO;
+
+	// The browser is still tearing down its overlay when this fires; restoring
+	// immediately gets clobbered, so defer to the next run loop.
+	BOOL restoreFileBrowser = self.savedFileBrowserVisibleForVersionBrowser;
+	BOOL restoreTabBar      = self.savedTabBarExpandedForVersionBrowser;
+	dispatch_async(dispatch_get_main_queue(), ^{
+		if(restoreFileBrowser)
+			self.fileBrowserVisible = YES;
+		if(restoreTabBar)
+			self.tabBarView.expanded = YES;
+	});
+}
+
+- (IBAction)renameDocument:(id)sender
+{
+	if(self.selectedDocument.path)
+		[[self selectedTMDocument] renameDocument:sender];
+}
+
+- (IBAction)moveDocument:(id)sender
+{
+	if(self.selectedDocument.path)
+		[[self selectedTMDocument] moveDocument:sender];
+}
+
 - (IBAction)saveDocumentAs:(id)sender
 {
 	OakDocument* doc = self.selectedDocument;
@@ -1253,10 +1368,56 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 // = Window Title =
 // ================
 
+- (NSWindowController*)autosaveButtonWindowController
+{
+	// The window is shared with a TMWindowController (an NSWindowController) that
+	// carries the private autosave-button API. Prefer the window's own controller,
+	// falling back to the selected document's matching window controller.
+	NSWindowController* wc = self.window.windowController;
+	if([wc respondsToSelector:@selector(_setShowAutosaveButton:)])
+		return wc;
+	for(NSWindowController* c in [self selectedTMDocument].windowControllers)
+	{
+		if(c.window == self.window && [c respondsToSelector:@selector(_setShowAutosaveButton:)])
+			return c;
+	}
+	return nil;
+}
+
+- (void)updateDocumentEditedIndicators
+{
+	OakDocument* doc = self.selectedDocument;
+	BOOL onDisk = doc.path != nil; // a saved document — autosaves in place
+	BOOL edited = doc.isDocumentEdited;
+	NSWindow* window = self.window;
+	NSWindowController* wc = [self autosaveButtonWindowController];
+
+	if(onDisk)
+	{
+		// Modern autosaving-document look: grey "Edited" text via the title's
+		// autosave button, never the close-button dot. Order matters — set the
+		// editing state before showing the button.
+		window.documentEdited = NO;
+		if([window respondsToSelector:@selector(_setDocumentEditingState:animate:)])
+			[window _setDocumentEditingState:(edited ? 1 : 0) animate:NO];
+		[wc _setShowAutosaveButton:YES];
+	}
+	else
+	{
+		// Never-saved (untitled) document: closing loses data, so use the classic
+		// dirty dot and hide the autosave button.
+		[wc _setShowAutosaveButton:NO];
+		window.documentEdited = edited;
+	}
+}
+
 - (void)updateWindowTitle
 {
 	if(self.selectedDocument.displayName)
 	{
+		// The grey "Edited" suffix for on-disk documents is rendered by AppKit's
+		// autosave title control (see -updateDocumentEditedIndicators); don't add
+		// it to the title string here or it would appear twice.
 		self.window.title = [self titleForDocument:self.selectedDocument withSetting:kSettingsWindowTitleKey];
 	}
 	else
@@ -1604,7 +1765,7 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 - (NSString*)tabBarView:(OakTabBarView*)aTabBarView titleForIndex:(NSUInteger)anIndex      { return [self titleForDocument:_documents[anIndex] withSetting:kSettingsTabTitleKey]; }
 - (NSString*)tabBarView:(OakTabBarView*)aTabBarView pathForIndex:(NSUInteger)anIndex       { return _documents[anIndex].path ?: @""; }
 - (NSString*)tabBarView:(OakTabBarView*)aTabBarView identifierForIndex:(NSUInteger)anIndex { return _documents[anIndex].identifier.UUIDString; }
-- (BOOL)tabBarView:(OakTabBarView*)aTabBarView isEditedAtIndex:(NSUInteger)anIndex         { return _documents[anIndex].isDocumentEdited; }
+- (BOOL)tabBarView:(OakTabBarView*)aTabBarView isEditedAtIndex:(NSUInteger)anIndex         { return _documents[anIndex].isDocumentEdited && !_documents[anIndex].path; }
 
 // ==============================
 // = OakTabBarView Context Menu =
@@ -2129,8 +2290,8 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 	auto map = document.variables;
 	auto const scm = _documentSCMVariables.empty() ? _projectSCMVariables : _documentSCMVariables;
 	map.insert(scm.begin(), scm.end());
-	if(self.projectPath)
-		map["projectDirectory"] = to_s(self.projectPath);
+	// Intentionally omit "projectDirectory" so the window title never shows the
+	// " — Folder" suffix (windowTitleProject expands to nothing without it).
 
 	NSString* docDirectory = document.path ? [document.path stringByDeletingLastPathComponent] : self.untitledSavePath;
 	settings_t const settings = settings_for_path(to_s(document.virtualPath ?: document.path), to_s(document.fileType) + " " + to_s(self.scopeAttributes), to_s(docDirectory), map);
@@ -2324,6 +2485,10 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 		active = self.selectedDocument.path != nil;
 		[menuItem setDynamicTitle:active ? [NSString stringWithFormat:@"Select “%@”", self.selectedDocument.displayName] : @"Select Document"];
 	}
+	else if([menuItem action] == @selector(browseAllVersions:) || [menuItem action] == @selector(renameDocument:) || [menuItem action] == @selector(moveDocument:))
+		active = self.selectedDocument.path != nil;
+	else if([menuItem action] == @selector(duplicateDocument:))
+		active = self.selectedDocument != nil;
 	else if([menuItem action] == @selector(goToProjectFolder:))
 		active = self.projectPath != nil;
 	else if([menuItem action] == @selector(goToParentFolder:))

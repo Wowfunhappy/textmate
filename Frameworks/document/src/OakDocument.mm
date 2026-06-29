@@ -1132,6 +1132,16 @@ NSString* OakDocumentBookmarkIdentifier           = @"bookmark";
 	return _icon;
 }
 
+- (NSImage*)proxyIcon
+{
+	// Same custom icon as -icon (custom file-type image + SCM badge) but never
+	// dimmed for the edited state — used for the title-bar proxy icon, which
+	// should not fade when the document has unsaved changes.
+	self.observeSCMStatus = YES;
+	NSString* path = _virtualPath ?: _path;
+	return CreateIconImageForURL(path ? [NSURL fileURLWithPath:path isDirectory:NO] : nil, NO, !self.isOnDisk, NO, NO, _scmStatus);
+}
+
 - (void)markDocumentSaved
 {
 	self.savedRevision = _revision;
