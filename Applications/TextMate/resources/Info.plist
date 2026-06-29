@@ -1506,25 +1506,6 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.source-code</string>
-			</array>
-			<key>UTTypeDescription</key>
-			<string>Go source</string>
-			<key>UTTypeIdentifier</key>
-			<string>org.golang.go</string>
-			<key>UTTypeReferenceURL</key>
-			<string>https://go.dev</string>
-			<key>UTTypeTagSpecification</key>
-			<dict>
-				<key>public.filename-extension</key>
-				<array>
-					<string>go</string>
-				</array>
-			</dict>
-		</dict>
-		<dict>
-			<key>UTTypeConformsTo</key>
-			<array>
 				<string>public.plain-text</string>
 			</array>
 			<key>UTTypeDescription</key>
@@ -1636,6 +1617,8 @@
 					<string>f</string>
 					<string>for</string>
 					<string>fpp</string>
+					<string>f03</string>
+					<string>f08</string>
 				</array>
 			</dict>
 		</dict>
@@ -1949,6 +1932,9 @@
 					<string>htc</string>
 					<string>jscript</string>
 					<string>javascript</string>
+					<string>jsx</string>
+					<string>mjs</string>
+					<string>cjs</string>
 				</array>
 				<key>public.mime-type</key>
 				<string>text/javascript</string>
@@ -2301,6 +2287,7 @@
 					<string>pl</string>
 					<string>pod</string>
 					<string>perl</string>
+					<string>psgi</string>
 					<string>pm</string>
 				</array>
 				<key>public.mime-type</key>
@@ -2330,6 +2317,9 @@
 					<string>php5</string>
 					<string>ph3</string>
 					<string>ph4</string>
+					<string>php7</string>
+					<string>php8</string>
+					<string>phps</string>
 					<string>phtml</string>
 				</array>
 				<key>public.mime-type</key>
@@ -2425,6 +2415,14 @@
 					<string>rpy</string>
 					<string>cpy</string>
 					<string>python</string>
+					<string>pyw</string>
+					<string>pyi</string>
+					<string>py3</string>
+					<string>gyp</string>
+					<string>gypi</string>
+					<string>wsgi</string>
+					<string>kv</string>
+					<string>smk</string>
 				</array>
 				<key>public.mime-type</key>
 				<string>text/x-python-script</string>
@@ -2565,28 +2563,11 @@
 					<string>rbx</string>
 					<string>rjs</string>
 					<string>rxml</string>
+					<string>rake</string>
+					<string>gemspec</string>
 				</array>
 				<key>public.mime-type</key>
 				<string>text/ruby-script</string>
-			</dict>
-		</dict>
-		<dict>
-			<key>UTTypeConformsTo</key>
-			<array>
-				<string>public.source-code</string>
-			</array>
-			<key>UTTypeDescription</key>
-			<string>Rust source</string>
-			<key>UTTypeIdentifier</key>
-			<string>org.rust-lang.rust</string>
-			<key>UTTypeReferenceURL</key>
-			<string>https://www.rust-lang.org</string>
-			<key>UTTypeTagSpecification</key>
-			<dict>
-				<key>public.filename-extension</key>
-				<array>
-					<string>rs</string>
-				</array>
 			</dict>
 		</dict>
 		<dict>
@@ -2606,6 +2587,7 @@
 				<array>
 					<string>scm</string>
 					<string>sch</string>
+					<string>rkt</string>
 				</array>
 			</dict>
 		</dict>
@@ -2684,6 +2666,8 @@
 				<key>public.filename-extension</key>
 				<array>
 					<string>sql</string>
+					<string>ddl</string>
+					<string>dml</string>
 				</array>
 				<key>public.mime-type</key>
 				<string>application/sql</string>
@@ -3194,6 +3178,276 @@
 					<string>tmPlugIn</string>
 					<string>tmPlugin</string>
 					<string>tmplugin</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Swift source</string>
+			<key>UTTypeIdentifier</key>
+			<string>org.swift.swift</string>
+			<key>UTTypeReferenceURL</key>
+			<string>https://swift.org</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>swift</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>TypeScript source</string>
+			<key>UTTypeIdentifier</key>
+			<string>org.typescriptlang.typescript</string>
+			<key>UTTypeReferenceURL</key>
+			<string>https://www.typescriptlang.org</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>ts</string>
+					<string>tsx</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Julia source</string>
+			<key>UTTypeIdentifier</key>
+			<string>org.julialang.julia</string>
+			<key>UTTypeReferenceURL</key>
+			<string>https://julialang.org</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>jl</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Dart source</string>
+			<key>UTTypeIdentifier</key>
+			<string>org.dartlang.dart</string>
+			<key>UTTypeReferenceURL</key>
+			<string>https://dart.dev</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>dart</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Kotlin source</string>
+			<key>UTTypeIdentifier</key>
+			<string>org.jetbrains.kotlin</string>
+			<key>UTTypeReferenceURL</key>
+			<string>https://kotlinlang.org</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>kt</string>
+					<string>kts</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Scala source</string>
+			<key>UTTypeIdentifier</key>
+			<string>org.scala-lang.scala</string>
+			<key>UTTypeReferenceURL</key>
+			<string>https://www.scala-lang.org</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>scala</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>TOML document</string>
+			<key>UTTypeIdentifier</key>
+			<string>org.toml.toml</string>
+			<key>UTTypeReferenceURL</key>
+			<string>https://toml.io</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>toml</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Sass SCSS stylesheet</string>
+			<key>UTTypeIdentifier</key>
+			<string>org.sass-lang.scss</string>
+			<key>UTTypeReferenceURL</key>
+			<string>https://sass-lang.com</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>scss</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Makefile</string>
+			<key>UTTypeIdentifier</key>
+			<string>org.gnu.make</string>
+			<key>UTTypeReferenceURL</key>
+			<string>https://www.gnu.org/software/make/</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>mk</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Ninja build file</string>
+			<key>UTTypeIdentifier</key>
+			<string>org.ninja-build.ninja</string>
+			<key>UTTypeReferenceURL</key>
+			<string>https://ninja-build.org</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>ninja</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Raku source</string>
+			<key>UTTypeIdentifier</key>
+			<string>org.raku.raku</string>
+			<key>UTTypeReferenceURL</key>
+			<string>https://raku.org</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>p6</string>
+					<string>pl6</string>
+					<string>pm6</string>
+					<string>nqp</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>TextMate Properties</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.macromates.textmate.properties</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>tm_properties</string>
+					<string>tmProperties</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Go source</string>
+			<key>UTTypeIdentifier</key>
+			<string>org.golang.go</string>
+			<key>UTTypeReferenceURL</key>
+			<string>https://go.dev</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>go</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.source-code</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Rust source</string>
+			<key>UTTypeIdentifier</key>
+			<string>org.rust-lang.rust</string>
+			<key>UTTypeReferenceURL</key>
+			<string>https://www.rust-lang.org</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>rs</string>
 				</array>
 			</dict>
 		</dict>
