@@ -5,3 +5,4 @@ Frameworks/license/src/revoked_serials.cc
 *.capnp.c++
 *.capnp.h
 .ninja_*
+.DS_Store
