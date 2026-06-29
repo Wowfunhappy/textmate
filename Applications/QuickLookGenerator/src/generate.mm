@@ -9,6 +9,7 @@
 #import <cf/cf.h>
 #import <ns/ns.h>
 #import <oak/misc.h>
+#import <OakSystem/application.h>
 #import <plist/fs_cache.h>
 #import <scope/scope.h>
 #import <settings/settings.h>
@@ -29,6 +30,12 @@ static void initialize (CFBundleRef generatorBundle)
 		NSString* parentBundlePath = [[[[[[bundleURL filePathURL] path] stringByDeletingLastPathComponent] stringByDeletingLastPathComponent] stringByDeletingLastPathComponent] stringByDeletingLastPathComponent];
 		parentBundle = [NSBundle bundleWithPath:parentBundlePath];
 		oakAppKitBundle = [NSBundle bundleWithPath:[parentBundlePath stringByAppendingPathComponent:@"Contents/Frameworks/OakAppKit.framework"]];
+
+		// We run inside the QuickLook daemon, so CFBundleGetMainBundle() points at
+		// quicklookd rather than TextMate. Seed the application path with the host
+		// TextMate bundle so bundles::locations() finds the grammars/themes that
+		// ship inside Contents/SharedSupport/Bundles.
+		oak::application_t::set_path(to_s(parentBundlePath));
 
 		settings_t::set_default_settings_path([[parentBundle pathForResource:@"Default" ofType:@"tmProperties"] fileSystemRepresentation]);
 		settings_t::set_global_settings_path(path::join(path::home(), "Library/Application Support/TextMate/Global.tmProperties"));
