@@ -19,6 +19,27 @@ OAK_DEBUG_VAR(TMDocument);
 @property (nonatomic) NSTimer* autosaveTimer;
 @property (nonatomic) NSDate* lastVersionDate;
 @property (nonatomic) BOOL performingIdleAutosave;
+@property (nonatomic) BOOL performingRevert;
+
+// Session checkpoints for the “Revert To” submenu. These exist because we drive
+// autosave straight to the document's file (see -idleAutosaveFired:), so the
+// live file is *not* a meaningful "last saved" state — it's whatever the most
+// recent idle autosave wrote. Native autosave-in-place reverts to a checkpoint
+// in the Versions store rather than to the live bytes; we reproduce that with
+// two in-memory snapshots of the buffer (held only for the session, matching
+// the semantics of "Last Saved"/"Last Opened").
+@property (nonatomic, copy) NSString* openedContentSnapshot; // disk state we opened/last reloaded from
+@property (nonatomic, copy) NSString* savedContentSnapshot;  // content of the last *explicit* (⌘S) save; nil until one happens
+@property (nonatomic) NSDate* openedContentDate;            // when openedContentSnapshot was captured (shown greyed in the menu)
+@property (nonatomic) NSDate* savedContentDate;             // when savedContentSnapshot was captured
+@end
+
+// Private AppKit hook that NSDocument's own Revert-To items use to give a menu
+// item a second, white title that the menu swaps in while the item is highlighted.
+// Without it the greyed timestamp stays grey on the blue selection. Present on the
+// 10.9 target (verified in AppKit); guarded with -respondsToSelector: at the call.
+@interface NSMenuItem (TMRevertAlternateTitle)
+- (void)_setAlternateAttributedTitle:(NSAttributedString*)title;
 @end
 
 @implementation TMDocument
@@ -119,6 +140,12 @@ OAK_DEBUG_VAR(TMDocument);
 
 
 		[oakDocument addObserver:self forKeyPath:@"path" options:NSKeyValueObservingOptionNew context:nullptr];
+		[oakDocument addObserver:self forKeyPath:@"loaded" options:NSKeyValueObservingOptionNew context:nullptr];
+
+		// If the document is already loaded, KVO on "loaded" won't fire, so grab
+		// the opened-state baseline now.
+		if(oakDocument.isLoaded)
+			[self captureOpenedContentSnapshot];
 
 		// Register with NSDocumentController for autosaving to work
 		[[NSDocumentController sharedDocumentController] addDocument:self];
@@ -132,6 +159,7 @@ OAK_DEBUG_VAR(TMDocument);
 	[_autosaveTimer invalidate];
 	[[NSNotificationCenter defaultCenter] removeObserver:self];
 	[_oakDocument removeObserver:self forKeyPath:@"path"];
+	[_oakDocument removeObserver:self forKeyPath:@"loaded"];
 }
 
 // MARK: - KVO
@@ -143,6 +171,25 @@ OAK_DEBUG_VAR(TMDocument);
 		NSString* path = self.oakDocument.path;
 		self.fileURL = path ? [NSURL fileURLWithPath:path] : nil;
 		D(DBF_TMDocument, bug("path changed: %s\n", path.UTF8String););
+	}
+	else if([keyPath isEqualToString:@"loaded"])
+	{
+		if(self.oakDocument.isLoaded)
+			[self captureOpenedContentSnapshot];
+	}
+}
+
+// MARK: - Revert Checkpoints
+
+- (void)captureOpenedContentSnapshot
+{
+	// The buffer equals the on-disk content right after a load/reload, so this is
+	// the state we opened from. Capture it only once per load; explicit saves move
+	// the separate "Last Saved" checkpoint, not this one.
+	if(self.oakDocument.isLoaded)
+	{
+		self.openedContentSnapshot = self.oakDocument.content;
+		self.openedContentDate     = [NSDate date];
 	}
 }
 
@@ -228,6 +275,16 @@ OAK_DEBUG_VAR(TMDocument);
 			self.fileModificationDate = modDate;
 	}
 	[self updateChangeCount:NSChangeCleared];
+
+	// This notification is posted only by OakDocument's own save path — the first
+	// save of an untitled document, Save As, Save All, save-on-close — all of which
+	// bypass -saveToURL:…. Capture the explicit-save checkpoint here too. Idle
+	// autosaves write through -saveToURL: and never post this, so they can't move it.
+	if(!_performingRevert && self.oakDocument.isLoaded)
+	{
+		self.savedContentSnapshot = self.oakDocument.content;
+		self.savedContentDate     = [NSDate date];
+	}
 }
 
 - (void)oakDocumentDidReload:(NSNotification*)notification
@@ -246,6 +303,17 @@ OAK_DEBUG_VAR(TMDocument);
 	}
 	if(!self.oakDocument.isDocumentEdited)
 		[self updateChangeCount:NSChangeCleared];
+
+	// An *external* reload re-baselines us to the new on-disk content: that's the
+	// state we're now editing from, and any prior explicit save is stale. (Our own
+	// revert posts this same notification with _reloading == YES — skip those, or
+	// reverting would overwrite the checkpoint we just reverted to.)
+	if(!_reloading)
+	{
+		[self captureOpenedContentSnapshot];
+		self.savedContentSnapshot = nil;
+		self.savedContentDate     = nil;
+	}
 }
 
 - (void)oakDocumentWillClose:(NSNotification*)notification
@@ -291,6 +359,89 @@ OAK_DEBUG_VAR(TMDocument);
 - (BOOL)hasUnautosavedChanges
 {
 	return self.oakDocument.isDocumentEdited || [super hasUnautosavedChanges];
+}
+
+- (BOOL)validateMenuItem:(NSMenuItem*)menuItem
+{
+	SEL action = menuItem.action;
+	if(action == @selector(revertDocumentToSaved:) || action == @selector(revertDocumentToLastOpened:))
+	{
+		BOOL toSaved = action == @selector(revertDocumentToSaved:);
+		BOOL applicable = [self canRevertToContent:(toSaved ? self.savedContentSnapshot : self.openedContentSnapshot)];
+
+		// The native "Revert To" submenu hides these when inapplicable rather than
+		// greying them out, and labels each with its version's timestamp.
+		menuItem.hidden = !applicable;
+		if(applicable)
+		{
+			// Feed in the menu's own font: an attributed title doesn't inherit it the
+			// way a plain title does, and +menuFontOfSize: doesn't reproduce it exactly.
+			NSFont*   menuFont = [[menuItem menu] font] ?: [NSFont menuFontOfSize:0];
+			NSString* label    = toSaved ? @"Last Saved" : @"Last Opened";
+			NSDate*   date     = toSaved ? self.savedContentDate : self.openedContentDate;
+
+			// Colours reverse-engineered from Mavericks' own -[NSDocument
+			// _addRevertItemsToMenu:]: the timestamp is greyed with gamma-2.2 white
+			// 0.47/α0.75, and a white alternate title is installed that AppKit swaps
+			// in while the item is highlighted (otherwise the grey date would stay
+			// grey on the blue selection). Both hooks exist on the 10.9 target.
+			menuItem.attributedTitle = [self revertMenuTitle:label date:date font:menuFont labelColor:nil dateColor:[NSColor colorWithGenericGamma22White:0.47 alpha:0.75]];
+			if([menuItem respondsToSelector:@selector(_setAlternateAttributedTitle:)])
+			{
+				NSColor* white = [NSColor colorWithGenericGamma22White:1.0 alpha:1.0];
+				[menuItem _setAlternateAttributedTitle:[self revertMenuTitle:label date:date font:menuFont labelColor:white dateColor:white]];
+			}
+		}
+		return applicable;
+	}
+	return [self validateUserInterfaceItem:menuItem];
+}
+
+- (BOOL)validateUserInterfaceItem:(id<NSValidatedUserInterfaceItem>)item
+{
+	SEL action = [item action];
+	if(action == @selector(revertDocumentToSaved:))
+		return [self canRevertToContent:self.savedContentSnapshot];
+	if(action == @selector(revertDocumentToLastOpened:))
+		return [self canRevertToContent:self.openedContentSnapshot];
+	return [super validateUserInterfaceItem:item];
+}
+
+// Builds "Last Saved — Today, 1:37 PM": the label in labelColor (nil = inherit the
+// menu's default, i.e. black normally / white on highlight) and the " — timestamp"
+// run in dateColor. colorWithGenericGamma22White: is public since 10.7.
+- (NSAttributedString*)revertMenuTitle:(NSString*)label date:(NSDate*)date font:(NSFont*)font labelColor:(NSColor*)labelColor dateColor:(NSColor*)dateColor
+{
+	NSDictionary* labelAttrs = labelColor ? @{ NSForegroundColorAttributeName: labelColor } : @{};
+	NSMutableAttributedString* title = [[NSMutableAttributedString alloc] initWithString:label attributes:labelAttrs];
+	if(date)
+	{
+		NSString* suffix = [NSString stringWithFormat:@" — %@", [[self class] revertDateStringForDate:date]];
+		[title appendAttributedString:[[NSAttributedString alloc] initWithString:suffix attributes:@{ NSForegroundColorAttributeName: dateColor }]];
+	}
+	if(font)
+		[title addAttribute:NSFontAttributeName value:font range:NSMakeRange(0, title.length)];
+	return title;
+}
+
++ (NSString*)revertDateStringForDate:(NSDate*)date
+{
+	// Comma-joined "Today, 1:37 PM" to match the native menu. NSDateFormatter's own
+	// date+time joining would instead read "Today at 1:37 PM", so format separately.
+	static NSDateFormatter* dayFormatter;
+	static NSDateFormatter* timeFormatter;
+	static dispatch_once_t onceToken;
+	dispatch_once(&onceToken, ^{
+		dayFormatter = [[NSDateFormatter alloc] init];
+		dayFormatter.dateStyle = NSDateFormatterMediumStyle;
+		dayFormatter.timeStyle = NSDateFormatterNoStyle;
+		dayFormatter.doesRelativeDateFormatting = YES;
+
+		timeFormatter = [[NSDateFormatter alloc] init];
+		timeFormatter.dateStyle = NSDateFormatterNoStyle;
+		timeFormatter.timeStyle = NSDateFormatterShortStyle;
+	});
+	return [NSString stringWithFormat:@"%@, %@", [dayFormatter stringFromDate:date], [timeFormatter stringFromDate:date]];
 }
 
 - (void)canCloseDocumentWithDelegate:(id)delegate shouldCloseSelector:(SEL)shouldCloseSelector contextInfo:(void*)contextInfo
@@ -363,6 +514,17 @@ OAK_DEBUG_VAR(TMDocument);
 		{
 			if(strongOakDoc && strongOakDoc.isLoaded)
 				[strongOakDoc markDocumentSaved];
+
+			// A real ⌘S — not an idle autosave or the write we issue while
+			// reverting — establishes the "Last Saved" checkpoint that
+			// -revertDocumentToSaved: restores. Idle autosaves keep writing the
+			// file but must not move this checkpoint, or "Last Saved" would track
+			// them and become a no-op (the bug this whole mechanism fixes).
+			if(!isIdleAutosave && !_performingRevert && strongOakDoc && strongOakDoc.isLoaded)
+			{
+				self.savedContentSnapshot = strongOakDoc.content;
+				self.savedContentDate     = [NSDate date];
+			}
 
 			// Author a revision for the native Versions browser. Explicit saves
 			// always snapshot; idle autosaves are throttled so a long editing
@@ -489,6 +651,90 @@ OAK_DEBUG_VAR(TMDocument);
 
 	[self updateChangeCount:NSChangeCleared];
 	return YES;
+}
+
+// MARK: - Revert To (Last Saved / Last Opened)
+
+- (BOOL)canRevertToContent:(NSString*)snapshot
+{
+	// Enabled only when reverting would actually change something. Comparing the
+	// whole buffer is fine here — validation runs when the menu opens, not per
+	// keystroke.
+	if(!snapshot || !self.fileURL || !self.oakDocument.isLoaded)
+		return NO;
+	NSString* current = self.oakDocument.content;
+	return current && ![current isEqualToString:snapshot];
+}
+
+- (void)revertDocumentToSaved:(id)sender
+{
+	// Overrides NSDocument's default, which would re-read the live file — and our
+	// live file is the latest *autosave*, so the stock revert is a no-op. Go to the
+	// last explicit-save checkpoint instead.
+	[self confirmRevertToContent:self.savedContentSnapshot question:[NSString stringWithFormat:@"Do you want to revert the document “%@” to the last saved version?", self.displayName]];
+}
+
+- (void)revertDocumentToLastOpened:(id)sender
+{
+	[self confirmRevertToContent:self.openedContentSnapshot question:[NSString stringWithFormat:@"Do you want to revert the document “%@” to the last opened version?", self.displayName]];
+}
+
+- (void)confirmRevertToContent:(NSString*)snapshot question:(NSString*)question
+{
+	if(![self canRevertToContent:snapshot])
+		return;
+
+	// Wording mirrors AppKit's stock revert sheet (which we bypass by overriding
+	// -revertDocumentToSaved:). "Saved in your version history" is literally true:
+	// -revertOakDocumentToContent: authors a version of the current state first.
+	NSAlert* alert = [[NSAlert alloc] init];
+	alert.messageText     = question;
+	alert.informativeText = @"Recent changes will be saved in your version history.";
+	[alert addButtonWithTitle:@"Revert"];
+	[alert addButtonWithTitle:@"Cancel"];
+
+	void(^handler)(NSModalResponse) = ^(NSModalResponse response){
+		if(response == NSAlertFirstButtonReturn)
+			[self revertOakDocumentToContent:snapshot];
+	};
+
+	if(NSWindow* window = self.windowForSheet)
+		[alert beginSheetModalForWindow:window completionHandler:handler];
+	else
+		handler([alert runModal]);
+}
+
+- (void)revertOakDocumentToContent:(NSString*)snapshot
+{
+	OakDocument* oakDoc = self.oakDocument;
+	if(!snapshot || !oakDoc.isLoaded)
+		return;
+
+	// Keep the work we're discarding recoverable in the Versions browser: snapshot
+	// the current on-disk state (idle autosave keeps it within ~5s of the buffer)
+	// before we overwrite it. Undo is the immediate safety net — the swap below is
+	// a single undo group.
+	if(self.fileURL)
+		[self preserveVersionOfURL:self.fileURL];
+
+	_reloading = YES;
+	[[NSNotificationCenter defaultCenter] postNotificationName:OakDocumentWillReloadNotification object:oakDoc];
+	[oakDoc beginUndoGrouping];
+	oakDoc.content = snapshot;
+	[oakDoc endUndoGrouping];
+	[[NSNotificationCenter defaultCenter] postNotificationName:OakDocumentDidReloadNotification object:oakDoc];
+	_reloading = NO;
+
+	// Write the reverted buffer back so the file matches it. _performingRevert
+	// keeps this from being mistaken for a ⌘S and moving the "Last Saved"
+	// checkpoint we may have just reverted to.
+	if(self.fileURL)
+	{
+		_performingRevert = YES;
+		[self saveToURL:self.fileURL ofType:self.fileType forSaveOperation:NSSaveOperation completionHandler:^(NSError* errorOrNil){
+			_performingRevert = NO;
+		}];
+	}
 }
 
 // MARK: - Duplication

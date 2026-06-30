@@ -141,8 +141,9 @@ BOOL HasDocumentWindow (NSArray* windows)
 				{ @"Move To…",                @selector(moveDocument:)                    },
 				{ @"Revert To",
 					.submenu = {
-						{ @"Last Saved",           @selector(revertDocumentToSaved:) },
-						{ @"Browse All Versions…", @selector(browseAllVersions:)     },
+						{ @"Last Saved",           @selector(revertDocumentToSaved:)      },
+						{ @"Last Opened",          @selector(revertDocumentToLastOpened:) },
+						{ @"Browse All Versions…", @selector(browseAllVersions:)          },
 					}
 				},
 				{ /* -------- */ },
