@@ -94,3 +94,7 @@ BUNDLES_DEST="$builddir/Applications/TextMate/TextMate.app/Contents/SharedSuppor
 rm -rf "$BUNDLES_DEST"
 mkdir -p "$BUNDLES_DEST"
 cp -R Bundles/*.tmbundle "$BUNDLES_DEST/"
+
+# Record when the bundles were last copied. The build (via bin/check_bundles)
+# uses this stamp to warn if Bundles/ is edited without re-running ./configure.
+touch "$builddir/bundles.synced"

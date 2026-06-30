@@ -157,7 +157,22 @@ class Target
       buildfile.build('link', objects, executable, link_flags(all_targets))
       buildfile.meta(bundle_path, executable, *resources)
       buildfile.build('sign', bundle_path, signature, sign_flags, sign_deps)
-      buildfile.meta(self.name, signature)
+
+      meta_deps = [ signature ]
+
+      # The default bundles in the top-level Bundles/ directory are copied into
+      # Contents/SharedSupport/Bundles by ./configure, not by ninja. Wire an
+      # always-run check into the app so each build warns when those bundles
+      # have been edited without re-running ./configure. See bin/check_bundles.
+      if self.name == 'TextMate' && File.directory?('Bundles')
+        buildfile.build('phony', [], 'force-bundles-check')
+        marker = File.join(buildfile.dir, 'bundles-check.marker')
+        stamp  = File.join(buildfile.dir, 'bundles.synced')
+        buildfile.build('check_bundles', 'force-bundles-check', marker, "#{stamp.shellescape} Bundles")
+        meta_deps << marker
+      end
+
+      buildfile.meta(self.name, *meta_deps)
 
       @files << [ executable, "#{bundle}/Contents/MacOS/#{self.name}", signature ]
       @files << [ signature, "#{bundle}/Contents/_CodeSignature/CodeResources" ]
@@ -363,6 +378,11 @@ class Buildfile
     self.rule('copy', {
       'command'     => '/bin/cp -Xp $in $out && touch $out',
       'description' => 'Copy ‘$in’…',
+    })
+
+    self.rule('check_bundles', {
+      'command'     => "#{BIN}/check_bundles $args && touch $out",
+      'description' => 'Check bundles for changes…',
     })
 
     self.rule('gen_test', {

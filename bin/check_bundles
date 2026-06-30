@@ -1,0 +1,27 @@
+#!/bin/sh
+#
+# check_bundles — warn (without failing the build) when the source Bundles/
+# directory has changed since the last time ./configure copied the bundles
+# into TextMate.app.
+#
+# ninja does not copy the top-level Bundles/ into the app — ./configure does
+# (see the bottom of ./configure). This check is wired into the TextMate target
+# so every build re-evaluates it and reminds you to re-run ./configure whenever
+# the copied bundles have gone stale.
+#
+# Usage: check_bundles <sync-stamp> <bundles-dir>
+
+stamp=$1
+bundles_dir=$2
+
+# No stamp means ./configure has not run since this check was added, so there is
+# nothing to compare against — stay quiet rather than nag spuriously.
+[ -f "$stamp" ] || exit 0
+[ -d "$bundles_dir" ] || exit 0
+
+if [ -n "$(find "$bundles_dir" -type f -newer "$stamp" 2>/dev/null | head -n 1)" ]; then
+	printf '\n\033[33;1m*** %s has changed since the last ./configure.\033[0m\n' "$bundles_dir" >&2
+	printf '\033[33;1m    TextMate.app still contains the previously copied bundles — re-run ./configure to update them.\033[0m\n\n' >&2
+fi
+
+exit 0
