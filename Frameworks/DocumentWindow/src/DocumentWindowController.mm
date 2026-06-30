@@ -2329,10 +2329,13 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 	}
 }
 
-- (IBAction)goToRelatedFile:(id)sender
+// Returns the path of the file to switch to via “Go to Related File”, or nil
+// when there is none (used both to perform the action and to validate the menu
+// item). Mirrors the candidate search in -goToRelatedFile: exactly.
+- (NSString*)pathForRelatedFile
 {
 	if(!self.selectedDocument.path)
-		return (void)NSBeep();
+		return nil;
 
 	std::string const documentPath = to_s(self.selectedDocument.path);
 	std::string const documentDir  = path::parent(documentPath);
@@ -2356,7 +2359,7 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 	std::string const customCandidate = settings.get(kSettingsRelatedFilePathKey, NULL_STR);
 
 	if(customCandidate != NULL_STR && customCandidate != documentPath && ([_documents indexOfObjectPassingTest:^BOOL(OakDocument* doc, NSUInteger, BOOL*){ return customCandidate == to_s(doc.path); }] != NSNotFound || path::exists(customCandidate)))
-		return [self openItems:@[ @{ @"path": [NSString stringWithCxxString:customCandidate] } ] closingOtherTabs:NO activate:YES];
+		return [NSString stringWithCxxString:customCandidate];
 
 	for(auto const& entry : path::entries(documentDir))
 	{
@@ -2382,15 +2385,22 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 	if(v.size() == 1)
 	{
 		if(customCandidate == NULL_STR || customCandidate == documentPath)
-			return (void)NSBeep();
+			return nil;
 		v.push_back(customCandidate);
 	}
 
 	std::vector<std::string>::const_iterator it = std::find(v.begin(), v.end(), documentName);
 	ASSERT(it != v.end());
 
-	NSString* path = [NSString stringWithCxxString:path::join(documentDir, v[((it - v.begin()) + 1) % v.size()])];
-	[self openItems:@[ @{ @"path": path } ] closingOtherTabs:NO activate:YES];
+	return [NSString stringWithCxxString:path::join(documentDir, v[((it - v.begin()) + 1) % v.size()])];
+}
+
+- (IBAction)goToRelatedFile:(id)sender
+{
+	if(NSString* path = [self pathForRelatedFile])
+		[self openItems:@[ @{ @"path": path } ] closingOtherTabs:NO activate:YES];
+	else
+		NSBeep();
 }
 
 // ============================
@@ -2490,6 +2500,8 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 		active = self.selectedDocument != nil;
 	else if([menuItem action] == @selector(goToProjectFolder:))
 		active = self.projectPath != nil;
+	else if([menuItem action] == @selector(goToRelatedFile:))
+		active = [self pathForRelatedFile] != nil;
 	else if([menuItem action] == @selector(goToParentFolder:))
 		active = [self.window firstResponder] != self.textView;
 	else if([menuItem action] == @selector(moveFocus:))
