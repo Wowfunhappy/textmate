@@ -407,22 +407,24 @@ static bool is_binary (std::string const& path)
 		chooser.target               = self;
 
 		finderTagsMenuItem.view = chooser;
+	}
 
-		// ================
-		// = Bundle Items =
-		// ================
+	// ================
+	// = Bundle Items =
+	// ================
+	// Added regardless of selection so that e.g. “Open Terminal” is also available
+	// (operating on the viewed folder) when nothing is selected.
 
-		std::multimap<std::string, bundles::item_ptr, text::less_t> sorted;
-		for(auto const& item : bundles::query(bundles::kFieldSemanticClass, "callback.file-browser.action-menu"))
-			sorted.emplace(item->name(), item);
+	std::multimap<std::string, bundles::item_ptr, text::less_t> sorted;
+	for(auto const& item : bundles::query(bundles::kFieldSemanticClass, "callback.file-browser.action-menu"))
+		sorted.emplace(item->name(), item);
 
-		NSInteger i = [menu indexOfItem:insertBundleItemsMenuItem];
-		for(auto pair : sorted)
-		{
-			NSMenuItem* item = [[NSMenuItem alloc] initWithTitle:to_ns(pair.first) action:@selector(executeBundleCommand:) keyEquivalent:@""];
-			item.representedObject = to_ns(pair.second->uuid());
-			[menu insertItem:item atIndex:++i];
-		}
+	NSInteger bundleItemIndex = [menu indexOfItem:insertBundleItemsMenuItem];
+	for(auto pair : sorted)
+	{
+		NSMenuItem* item = [[NSMenuItem alloc] initWithTitle:to_ns(pair.first) action:@selector(executeBundleCommand:) keyEquivalent:@""];
+		item.representedObject = to_ns(pair.second->uuid());
+		[menu insertItem:item atIndex:++bundleItemIndex];
 	}
 
 	for(NSMenuItem* menuItem in menu.itemArray)
@@ -553,10 +555,17 @@ static bool is_binary (std::string const& path)
 {
 	if(bundles::item_ptr item = bundles::lookup(to_s([sender representedObject])))
 	{
+		// Provide the file browser context (selection, viewed folder) directly: on
+		// systems where the view controller isn’t in the responder chain (e.g. 10.9)
+		// OakCommand can’t reach -updateEnvironment:forCommand: to inject these.
+		std::map<std::string, std::string> variables = item->bundle_variables();
+		for(auto const& pair : [self variables])
+			variables[pair.first] = pair.second;
+
 		// TODO For commands that have ‘input = document’ we should provide the document
 		OakCommand* command = [[OakCommand alloc] initWithBundleCommand:parse_command(item)];
 		command.firstResponder = self;
-		[command executeWithInput:nil variables:item->bundle_variables() outputHandler:nil];
+		[command executeWithInput:nil variables:variables outputHandler:nil];
 	}
 }
 
@@ -972,6 +981,9 @@ static bool is_binary (std::string const& path)
 		env["TM_SELECTED_FILE"]  = self.selectedFileURLs.lastObject.fileSystemRepresentation;
 		env["TM_SELECTED_FILES"] = text::join(paths, " ");
 	}
+
+	if(NSString* dir = self.path)
+		env["TM_PROJECT_DIRECTORY"] = dir.fileSystemRepresentation;
 
 	return env;
 }
