@@ -2288,10 +2288,9 @@ static NSArray* const kObservedKeyPaths = @[ @"arrayController.arrangedObjects.p
 - (NSString*)titleForDocument:(OakDocument*)document withSetting:(std::string const&)setting
 {
 	auto map = document.variables;
-	auto const scm = _documentSCMVariables.empty() ? _projectSCMVariables : _documentSCMVariables;
-	map.insert(scm.begin(), scm.end());
-	// Intentionally omit "projectDirectory" so the window title never shows the
-	// " — Folder" suffix (windowTitleProject expands to nothing without it).
+	// Intentionally omit "projectDirectory" and the SCM variables so the window
+	// title shows neither the " — Folder" suffix nor the "(git: …)" SCM suffix
+	// (windowTitleProject / windowTitleSCM expand to nothing without them).
 
 	NSString* docDirectory = document.path ? [document.path stringByDeletingLastPathComponent] : self.untitledSavePath;
 	settings_t const settings = settings_for_path(to_s(document.virtualPath ?: document.path), to_s(document.fileType) + " " + to_s(self.scopeAttributes), to_s(docDirectory), map);
